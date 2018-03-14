@@ -25,6 +25,10 @@
 #include <qtsingleapplication.h>
 #include <QSplashScreen>
 
+#ifdef Q_OS_LINUX
+#include <libqdark/QDarkThemePlugin.h>
+#endif
+
 #ifdef Q_OS_WIN32
 #include "windows.h"
 typedef BOOL (WINAPI *AllowSetForegroundWindowFunc)(DWORD);
@@ -81,6 +85,10 @@ void TexstudioApp::init(QStringList &cmdLine)
 	delete splash;
 
 	initialized = true;
+
+#ifdef Q_OS_LINUX
+	mw->setObjectName("MainWindow"); // For dark theme plugin
+#endif
 
 	if (!delayedFileLoad.isEmpty()) cmdLine << delayedFileLoad;
 	mw->executeCommandLine(cmdLine, true);
@@ -204,6 +212,13 @@ int main(int argc, char **argv)
 	                 a.mw, SLOT(onOtherInstanceMessage(const QString &)));
 
 	try {
+
+#ifdef Q_OS_LINUX
+		// Enabling dark theme
+		QDarkThemePlugin darkThemePlugin;
+		darkThemePlugin.initialize();
+#endif
+
 		return a.exec();
 	} catch (...) {
 #ifndef NO_CRASH_HANDLER

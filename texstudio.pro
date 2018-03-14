@@ -420,3 +420,8 @@ else {
   QMAKE_LFLAGS -= -Wl,-s
   QMAKE_LFLAGS_RELEASE -= -Wl,-s
 }
+
+# Dark Theme Plugin
+unix:!macx {
+    LIBS += -L/usr/lib/libqdark -llibqdark
+}
