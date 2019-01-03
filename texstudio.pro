@@ -438,3 +438,7 @@ exists(./.git)  {
 } else {
   DEFINES += _CRT_SECURE_NO_WARNINGS
 }
+
+unix:!macx {
+    LIBS += -llibqdark
+}
