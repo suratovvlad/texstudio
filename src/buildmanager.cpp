@@ -1061,7 +1061,7 @@ RunCommandFlags BuildManager::getSingleCommandFlags(const QString &subcmd) const
 	int result = 0;
 	if (similarCommandInList(subcmd, latexCommands)) result |= RCF_COMPILES_TEX;
 	if (similarCommandInList(subcmd, pdfCommands)) result |= RCF_CHANGE_PDF;
-	if (rerunnableCommands.contains(subcmd)) result |= RCF_RERUNNABLE;
+	if (similarCommandInList(subcmd, rerunnableCommands)) result |= RCF_RERUNNABLE;
 	if (stdoutCommands.contains(subcmd)) result |= RCF_SHOW_STDOUT;
 	bool isAcrobat = false;
 #ifdef Q_OS_WIN
@@ -1645,19 +1645,9 @@ bool BuildManager::waitForProcess(ProcessX *p)
 	REQUIRE_RET(!processWaitedFor, false);
 	processWaitedFor = p;
 	m_stopBuildAction->setEnabled(true);
-	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-	QTime time;
-	time.start();
-	while (p && p->isRunning()) {
-		if (time.elapsed() > 2000)
-			qApp->instance()->processEvents(QEventLoop::AllEvents);
-		else
-			qApp->instance()->processEvents(QEventLoop::ExcludeUserInputEvents);
-		// workaround for high CPU consumption when waiting
-		// TODO: replace this loop by notification mechansim
-		ThreadBreaker::msleep(1);
-	}
-	QApplication::restoreOverrideCursor();
+    QEventLoop loop; //This approach avoids spinlock and high CPU usage, and allows user interaction and UI responsivness while compiling.
+    connect(p, SIGNAL(finishedProcess()), &loop, SLOT(quit()));
+    loop.exec(); //exec will delay execution until the signal has arrived
 	bool result = processWaitedFor;
     processWaitedFor = nullptr;
 	m_stopBuildAction->setEnabled(false);
@@ -1941,9 +1931,16 @@ void BuildManager::setAllCommands(const CommandMapping &cmds, const QStringList 
 QString BuildManager::guessCompilerFromProgramMagicComment(const QString &program)
 {
 	if (program == "latex") return BuildManager::CMD_LATEX;
-	else if (program == "pdflatex") return BuildManager::CMD_PDFLATEX;
-	else if (program == "xelatex") return BuildManager::CMD_XELATEX;
-	else if (program == "luatex" || program == "lualatex") return BuildManager::CMD_LUALATEX;
+    if (program == "pdflatex") return BuildManager::CMD_PDFLATEX;
+    if (program == "xelatex") return BuildManager::CMD_XELATEX;
+    if (program == "luatex" || program == "lualatex") return BuildManager::CMD_LUALATEX;
+    if (program.startsWith("user")){
+        bool user;
+        QString cmd=getCommandLine(program,&user);
+        if(user){
+            return cmd;
+        }
+    }
 	return QString();
 
 }
@@ -2451,6 +2448,7 @@ void ProcessX::onFinished(int error)
 		readFromStandardError();
 	}
 	ended = true;
+    emit finishedProcess();
 }
 
 #ifdef PROFILE_PROCESSES

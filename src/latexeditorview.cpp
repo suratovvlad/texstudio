@@ -1229,6 +1229,7 @@ void LatexEditorView::foldEverything(bool unFold)
 {
 	QDocument *doc = editor->document();
 	QLanguageDefinition *ld = doc->languageDefinition();
+	if (!ld) return;
 	QFoldedLineIterator fli = ld->foldedLineIterator(doc, 0);
 	for (int i = 0; i < doc->lines(); i++, ++fli)
 		if (fli.open) {
@@ -1242,6 +1243,7 @@ void LatexEditorView::foldLevel(bool unFold, int level)
 {
 	QDocument *doc = editor->document();
 	QLanguageDefinition *ld = doc->languageDefinition();
+	if (!ld) return;
 	for (QFoldedLineIterator fli = ld->foldedLineIterator(doc);
 	        fli.line.isValid(); ++fli) {
 		if (fli.openParentheses.size() == level && fli.open) {
@@ -2203,12 +2205,16 @@ void LatexEditorView::spellRemoveMarkers(const QString &newIgnoredWord)
 	REQUIRE(editor);
 	QDocument* doc = editor->document();
 	if (!doc) return;
+    QString newUpperIgnoredWord=newIgnoredWord; //remove upper letter start as well
+    if(!newUpperIgnoredWord.isEmpty()){
+        newUpperIgnoredWord[0]=newUpperIgnoredWord[0].toUpper();
+    }
 	//documentContentChanged(editor->cursor().lineNumber(),1);
 	for (int i = 0; i < doc->lines(); i++) {
 		QList<QFormatRange> li = doc->line(i).getOverlays(SpellerUtility::spellcheckErrorFormat);
 		QString curLineText = doc->line(i).text();
 		for (int j = 0; j < li.size(); j++)
-			if (latexToPlainWord(curLineText.mid(li[j].offset, li[j].length)) == newIgnoredWord) {
+            if (latexToPlainWord(curLineText.mid(li[j].offset, li[j].length)) == newIgnoredWord || latexToPlainWord(curLineText.mid(li[j].offset, li[j].length)) == newUpperIgnoredWord) {
 				doc->line(i).removeOverlay(li[j]);
 				doc->line(i).setFlag(QDocumentLine::LayoutDirty, true);
 			}
@@ -2237,23 +2243,44 @@ QString LatexEditorView::extractMath(QDocumentCursor cursor)
 	return parenthizedTextSelection(cursor).selectedText();
 }
 
+bool LatexEditorView::moveToCommandStart (QDocumentCursor &cursor, QString commandPrefix)
+{
+	QString line = cursor.line().text();
+	int lastOffset = cursor.columnNumber();
+	if (lastOffset >= line.length()) {
+		lastOffset = -1;
+	}
+	int foundOffset = line.lastIndexOf(commandPrefix, lastOffset);
+	if (foundOffset == -1) {
+		return false;
+	}
+	cursor.moveTo(cursor.lineNumber(), foundOffset);
+	return true;
+}
+
 bool LatexEditorView::showMathEnvPreview(QDocumentCursor cursor, QString command, QString environment, QPoint pos)
 {
-    QStringList envAliases = document->lp.environmentAliases.values(environment);
-	if (((command == "\\begin" || command == "\\end") && envAliases.contains("math")) || command == "\\[" || command == "\\]" || command == "$") {
-		while (!cursor.atLineStart() && cursor.nextChar() != '\\') {
-			cursor.movePosition(1, QDocumentCursor::PreviousCharacter);
-		}
-		QString text = parenthizedTextSelection(cursor).selectedText();
-		if (!text.isEmpty()) {
-			m_point = editor->mapToGlobal(editor->mapFromFrame(pos));
-			emit showPreview(text);
-			return true;
-		}
+	QStringList envAliases = document->lp.environmentAliases.values(environment);
+	bool found;
+	if (((command == "\\begin" || command == "\\end") && envAliases.contains("math")) || command == "\\[" || command == "\\]") {
+		found = moveToCommandStart(cursor, "\\");
+	} else if (command == "$" || command == "$$") {
+		found = moveToCommandStart(cursor, command);
 	} else {
-		QToolTip::hideText();
+		found = false;
 	}
-	return false;
+	if (!found) {
+		QToolTip::hideText();
+		return false;
+	}
+	QString text = parenthizedTextSelection(cursor).selectedText();
+	if (text.isEmpty()) {
+		QToolTip::hideText();
+		return false;
+	}
+	m_point = editor->mapToGlobal(editor->mapFromFrame(pos));
+	emit showPreview(text);
+	return true;
 }
 
 void LatexEditorView::mouseHovered(QPoint pos)
@@ -2366,7 +2393,7 @@ void LatexEditorView::mouseHovered(QPoint pos)
 			if (cnt == 0) {
 				mText = tr("label missing!");
 			} else if (cnt > 1) {
-				mText = tr("label multiple times defined!");
+				mText = tr("label defined multiple times!");
 			} else {
 				QMultiHash<QDocumentLineHandle *, int> result = document->getLabels(value);
 				QDocumentLineHandle *mLine = result.keys().first();
@@ -2384,7 +2411,7 @@ void LatexEditorView::mouseHovered(QPoint pos)
 		if (tk.type == Token::label) {
 			handled = true;
 			if (document->countLabels(value) > 1) {
-				QToolTip::showText(editor->mapToGlobal(editor->mapFromFrame(pos)), tr("label multiple times defined!"));
+				QToolTip::showText(editor->mapToGlobal(editor->mapFromFrame(pos)), tr("label defined multiple times!"));
 			} else {
 				int cnt = document->countRefs(value);
 				QToolTip::showText(editor->mapToGlobal(editor->mapFromFrame(pos)), tr("%n reference(s) to this label", "", cnt));

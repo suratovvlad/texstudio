@@ -227,7 +227,7 @@ void PDFInfoDock::fillInfo()
 		const int id = keys.indexOf(date);
 		if (id != -1) {
 			list->addItem(date + ":");
-			list->addItem(doc->date(date).toString(Qt::SystemLocaleDate));
+			list->addItem(doc->date(date).toLocalTime().toString(Qt::SystemLocaleDate));
 			++i;
 			keys.removeAt(id);
 		}
@@ -749,7 +749,7 @@ bool PDFScrollArea::eventFilter(QObject *o, QEvent *e)
 
 void PDFScrollArea::wheelEvent(QWheelEvent *e)
 {
-	if (pdf && !getContinuous()) {
+    if (pdf){// && !getContinuous()) {
 		pdf->wheelEvent(e);
 		return;
 	}
@@ -832,11 +832,6 @@ void PDFScrollArea::updateScrollBars()
 
 
 //////////////// Overview ////////////////
-struct renderInfo {
-	Poppler::Page *page;
-	PDFWidget *widget;
-};
-
 
 PDFOverviewDock::PDFOverviewDock(PDFDocument *doc)
 	: PDFDock(doc), toGenerate(0)
@@ -1013,7 +1008,8 @@ MessageFrame::MessageFrame(QWidget *parent) : QFrame(parent), label(nullptr)
 	layout->addWidget(label);
 	layout->setContentsMargins(2, 2, 2, 2);
 
-	setStyleSheet("background: #FFFBBF;");
+	setStyleSheet("MessageFrame {background: #FFFBBF}\n"
+				  "QLabel {color: black}");  // only style the frame and the labels. Buttons remain unstyled.
 	setVisible(false);
 }
 

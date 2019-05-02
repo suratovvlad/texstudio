@@ -3,6 +3,11 @@
 
 #include "mostQtHeaders.h"
 
+#if QT_VERSION >= 0x050000
+#include <QJsonDocument>
+#include <QJsonArray>
+#endif
+
 class QLanguageDefinition;
 class QLanguageFactory;
 class LatexDocument;
@@ -42,6 +47,7 @@ public:
     bool isEmpty() const;
 
     void setShortcut(const QString &sc);
+    void setTrigger(const QString &newTrigger);
 
 	QString typedTag() const;
     void setTypedTag(const QString &m_tag);

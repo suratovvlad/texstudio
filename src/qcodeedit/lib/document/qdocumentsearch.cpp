@@ -40,9 +40,8 @@
 */
 
 QDocumentSearch::QDocumentSearch(QEditor *e, const QString& f, Options opt, const QString& r)
- : m_option(opt), m_string(f),  m_editor(e), m_replaced(0), m_replaceDeltaLength(0)
+ : m_option(opt), m_string(f), m_replace(r), m_editor(e), m_replaced(0), m_replaceDeltaLength(0)
 {
-	m_replace=r;
 	connectToEditor();
 }
 void QDocumentSearch::connectToEditor(){
@@ -655,6 +654,11 @@ int QDocumentSearch::next(bool backward, bool all, bool again, bool allowWrapAro
 		int coloffset = 0;
 		QString s = l.text();
 
+        if ( bounded ) {
+            // update boundaries as scope is changed when changing text
+            boundaries = scope.selection();
+        }
+
 		if ( backward )
 		{
 			if ( bounded && (boundaries.startLine == ln) )
@@ -673,6 +677,10 @@ int QDocumentSearch::next(bool backward, bool all, bool again, bool allowWrapAro
 		int column;
 		if (backward) column=m_regexp.lastIndexIn(s,m_cursor.columnNumber()-coloffset);
 		else column=m_regexp.indexIn(s, m_cursor.columnNumber());
+
+        if(backward && hasOption(RegExp) && m_string.endsWith('$') && s.length()<l.length()){
+            column=-1; // force miss as regexp $ is only valid on unchanged line
+        }
         /*
 		qDebug("searching %s in %s from %i => %i",
 				qPrintable(m_regexp.pattern()),

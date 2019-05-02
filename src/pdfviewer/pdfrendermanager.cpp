@@ -25,6 +25,20 @@ const int kMaxPageZoom = 1000000;
 const qreal kMaxDpiForFullPage = 1000.0;
 
 
+SetImageForwarder::SetImageForwarder(QObject *parent, QObject *obj, const char *rec, QPixmap img, int pageNr):
+    QObject(parent), obj(obj), rec(rec), img(img), pageNr(pageNr)
+{
+}
+
+void SetImageForwarder::setImage() {
+    QMetaObject::invokeMethod(obj, rec, Q_ARG(QPixmap, img), Q_ARG(int, pageNr));
+    deleteLater();
+}
+
+void SetImageForwarder::forward(int delay) {
+    QTimer::singleShot(delay, this, SLOT(setImage()));
+}
+
 PDFQueue::PDFQueue(QObject *parent): QObject(parent), stopped(true), num_renderQueues(1)
 {
 #if QT_VERSION < 0x040400
@@ -114,7 +128,7 @@ class HiddenByteArray: public QByteArray
 {
 public:
 	HiddenByteArray(): QByteArray() {}
-	HiddenByteArray(const QString &s): QByteArray(s.toLatin1()) {}
+    explicit HiddenByteArray(const QString &s): QByteArray(s.toLatin1()) {}
 	~HiddenByteArray()
 	{
 		for (int i = 0; i < length(); i++)
@@ -149,10 +163,13 @@ QSharedPointer<Poppler::Document> PDFRenderManager::loadDocument(const QString &
 				return QSharedPointer<Poppler::Document>();
 			}
 			// create document
-			if (loadStrategy == BufferedLoad || (loadStrategy == HybridLoad && queueAdministration->documentData.size() < 50000000))
+			if (loadStrategy == BufferedLoad || (loadStrategy == HybridLoad && queueAdministration->documentData.size() < 50000000)) {
+				if (queueAdministration->documentData.size() < 1024)
+					queueAdministration->documentData.append(QByteArray(1024 - queueAdministration->documentData.size(), (char) 0));
 				docPtr = Poppler::Document::loadFromData(queueAdministration->documentData, ownerPassword, userPassword);
-			else
+			} else {
 				docPtr = Poppler::Document::load(fileName, ownerPassword, userPassword);
+			}
 		}
 	} catch (std::bad_alloc) {
 		error = PopplerErrorBadAlloc;
@@ -244,7 +261,7 @@ QSharedPointer<Poppler::Document> PDFRenderManager::loadDocument(const QString &
 	return document;
 }
 
-QPixmap PDFRenderManager::renderToImage(int pageNr, QObject *obj, const char *rec, double xres, double yres, int x, int y, int w, int h, bool cache, bool priority, Poppler::Page::Rotation rotate)
+QPixmap PDFRenderManager::renderToImage(int pageNr, QObject *obj, const char *rec, double xres, double yres, int x, int y, int w, int h, bool cache, bool priority, int delayTimeout, Poppler::Page::Rotation rotate)
 {
 	if (document.isNull()) return QPixmap();
 	if (pageNr < 0 || pageNr >= cachedNumPages) return QPixmap();
@@ -284,6 +301,17 @@ QPixmap PDFRenderManager::renderToImage(int pageNr, QObject *obj, const char *re
 	if (img.isNull() && renderedPages.contains(pageNr)) { // try cache first
 		img = *renderedPages[pageNr];
 	}
+
+    // delayTimeout = -1 means it's NOT been called by delayedUpdate
+    // delayTimeout >= 0 means it's been called called by delayedUpdate and delayedUpdate wants to force an update after delayTimeout
+    // Note that when delayTimeout >= 0 is used, and there's no cache, the slot can be called with null img.
+    if (delayTimeout >= 0) {
+        if (!img.isNull())
+            QMetaObject::invokeMethod(info.obj, info.slot, Q_ARG(QPixmap, img), Q_ARG(int, pageNr));
+        else
+            (new SetImageForwarder(this, obj, rec, img, pageNr))->forward(delayTimeout);
+    }
+
 	//if(img.isNull()) // not cached, thumbnail present ? (fix crash?)
 	//	img=QPixmap::fromImage(page->thumbnail());
 	if (!img.isNull() && !partialImage) { // if a image was found, scale it apropriately

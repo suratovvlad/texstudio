@@ -27,6 +27,8 @@
 <file>completion/booktabs.cwl</file>
 <file>completion/braket.cwl</file>
 <file>completion/calc.cwl</file>
+<file>completion/calculator.cwl</file>
+<file>completion/calculus.cwl</file>
 <file>completion/cancel.cwl</file>
 <file>completion/caption.cwl</file>
 <file>completion/cases.cwl</file>
@@ -165,6 +167,7 @@
 <file>completion/secsty.cwl</file>
 <file>completion/setspace.cwl</file>
 <file>completion/shellesc.cwl</file>
+<file>completion/simpleinvoice.cwl</file>
 <file>completion/siunitx.cwl</file>
 <file>completion/siunitx-special.cwl</file>
 <file>completion/subcaption.cwl</file>

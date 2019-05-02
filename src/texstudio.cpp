@@ -80,6 +80,8 @@
 
 #include "qnfadefinition.h"
 
+#include "PDFDocument_config.h"
+
 /*! \file texstudio.cpp
  * contains the GUI definition as well as some helper functions
  */
@@ -396,6 +398,7 @@ Texstudio::Texstudio(QWidget *parent, Qt::WindowFlags flags, QSplashScreen *spla
 	if (!configManager.rememberFileFilter)
 		selectedFileFilter = filters.first();
 
+    enlargedViewer=false;
 
 	//setup autosave timer
 	connect(&autosaveTimer, SIGNAL(timeout()), this, SLOT(fileSaveAll()));
@@ -606,7 +609,8 @@ void Texstudio::setupDockWidgets()
 	addTagList("metapost", getRealIconFile("metapost"), tr("MetaPost Commands"), "metapost_tags.xml");
 	addTagList("tikz", getRealIconFile("tikz"), tr("Tikz Commands"), "tikz_tags.xml");
 	addTagList("asymptote", getRealIconFile("asymptote"), tr("Asymptote Commands"), "asymptote_tags.xml");
-    addTagList("beamer", getRealIconFile("beamer"), tr("Beamer Commands"), "beamer_tags.xml");
+	addTagList("beamer", getRealIconFile("beamer"), tr("Beamer Commands"), "beamer_tags.xml");
+	addTagList("xymatrix", getRealIconFile("xy"), tr("XY Commands"), "xymatrix_tags.xml");
 
 	leftPanel->showWidgets();
 
@@ -7259,7 +7263,7 @@ void Texstudio::updateCompleter(LatexEditorView *edView)
             QList<CodeSnippet> userList=doc->userCommandList();
             if(config){
                 CodeSnippetList::iterator it;
-                for(it=userList.begin();it!=userList.end();it++){
+		for(it=userList.begin();it!=userList.end();++it){
                     QList<QPair<int, int> >res = config->usage.values(it->index);
                     foreach (const PairIntInt &elem, res) {
                         if (elem.first == it->snippetLength) {
@@ -10330,6 +10334,12 @@ void Texstudio::enlargeEmbeddedPDFViewer()
 		return;
 	sidePanelSplitter->hide();
 	configManager.viewerEnlarged = true;
+    PDFDocumentConfig *pdfConfig=configManager.pdfDocumentConfig;
+    if(!enlargedViewer){
+        rememberFollowFromScroll=pdfConfig->followFromScroll;
+    }
+    enlargedViewer=true;
+    pdfConfig->followFromScroll=false;
 	viewer->setStateEnlarged(true);
 #endif
 }
@@ -10349,6 +10359,11 @@ void Texstudio::shrinkEmbeddedPDFViewer(bool preserveConfig)
 	PDFDocument *viewer = oldPDFs.first();
 	if (!viewer->embeddedMode)
 		return;
+    if(enlargedViewer){
+        PDFDocumentConfig *pdfConfig=configManager.pdfDocumentConfig;
+        pdfConfig->followFromScroll=rememberFollowFromScroll;
+        enlargedViewer=false;
+    }
 	viewer->setStateEnlarged(false);
 #endif
 }

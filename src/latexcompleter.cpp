@@ -421,11 +421,7 @@ public:
 			completer->tbBelow->setCurrentIndex(showMostUsed);
 			return true;
 		} else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-			if (!insertCompletedWord()) {
-				editor->insertText("\n");
-				//curLine=editor->document()->line(curLine.lineNumber()+1);
-				//editor->setCursorPosition(curLine.lineNumber(),curLine.length());
-			}
+            insertCompletedWord();
 			resetBinding();
 			return true;
 		} else {
@@ -675,7 +671,7 @@ public:
 			Q_ASSERT(view);
 			view->mayNeedToOpenCompleter();
 		}
-		if (completer && completer->completingGraphic() && curWord.endsWith(QDir::separator())) {
+        if (completer && completer->completingGraphic() && curWord.endsWith("/")) {
 			completer->complete(editor, LatexCompleter::CompletionFlags(LatexCompleter::CF_FORCE_VISIBLE_LIST | LatexCompleter::CF_FORCE_GRAPHIC));
 		}
 	}
@@ -725,7 +721,7 @@ CompleterInputBinding *completerInputBinding = new CompleterInputBinding();
 class CompletionItemDelegate: public QItemDelegate
 {
 public:
-    CompletionItemDelegate(QObject *parent = nullptr): QItemDelegate(parent)
+    explicit CompletionItemDelegate(QObject *parent = nullptr): QItemDelegate(parent)
 	{
 	}
 
@@ -885,7 +881,6 @@ void CompletionListModel::setContextWords(const QSet<QString> &newwords, const Q
 	for (QSet<QString>::const_iterator i = newwords.constBegin(); i != newwords.constEnd(); ++i) {
 		QString str = *i;
 		QString validValues;
-		bool rare = false;
 		if (str.contains("#")) {
 			int j = str.indexOf("#");
 			validValues = str.mid(j + 1);
@@ -898,11 +893,8 @@ void CompletionListModel::setContextWords(const QSet<QString> &newwords, const Q
 		}
 		CompletionWord cw(str);
 		cw.index = 0;
-		if (rare) {
-			cw.usageCount = -2;
-		} else {
-			cw.usageCount = 2;
-		}
+        cw.usageCount = 2;
+
 		cw.snippetLength = 0;
 		newWordList.append(cw);
 	}
@@ -1498,6 +1490,9 @@ void LatexCompleter::complete(QEditor *newEditor, const CompletionFlags &flags)
 	Q_ASSERT(list);
 	Q_ASSERT(listModel);
 	Q_ASSERT(completerInputBinding);
+
+    bool alreadyActive=completerInputBinding->isActive(); // called with already open completer
+
 	forcedRef = flags & CF_FORCE_REF;
 	forcedGraphic = flags & CF_FORCE_GRAPHIC;
 	forcedCite = flags & CF_FORCE_CITE;
@@ -1651,11 +1646,11 @@ void LatexCompleter::complete(QEditor *newEditor, const CompletionFlags &flags)
 		QString path;
 		if (flags & CF_FORCE_GRAPHIC) {
 			QString fn = lineText.mid(start, c.columnNumber() - start);
-			int lastIndex = fn.lastIndexOf(QDir::separator());
+            int lastIndex = fn.lastIndexOf("/");
 			if (lastIndex >= 0)
 				start = start + lastIndex + 1;
 			if (fn.isEmpty())
-				fn = workingDir + QDir::separator();
+                fn = workingDir + "/";
 
             QFileInfo fi(QDir(workingDir),fn);
 			path = fi.absolutePath();
@@ -1685,7 +1680,7 @@ void LatexCompleter::complete(QEditor *newEditor, const CompletionFlags &flags)
 
 	completerInputBinding->autoOverridenText = (flags & CF_OVERRIDEN_BACKSLASH) ? "\\" : "";
 
-	if (config && config->completeCommonPrefix) completerInputBinding->completeCommonPrefix();
+    if (config && config->completeCommonPrefix && alreadyActive) completerInputBinding->completeCommonPrefix(); // only complete common prefix if the completer was visible when called
 }
 
 void LatexCompleter::directoryLoaded(QString , QSet<QString> content)
@@ -1824,7 +1819,7 @@ void LatexCompleter::selectionChanged(const QModelIndex &index)
 		if (cnt == 0) {
 			topic = tr("label missing!");
 		} else if (cnt > 1) {
-			topic = tr("label multiple times defined!");
+			topic = tr("label defined multiple times!");
 		} else {
 			QMultiHash<QDocumentLineHandle *, int> result = document->getLabels(value);
 			QDocumentLineHandle *mLine = result.keys().first();

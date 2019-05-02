@@ -49,6 +49,7 @@ RESOURCES += texstudio.qrc \
 
 
 TRANSLATIONS += translation/texstudio_ar.ts \
+    translation/texstudio_br.ts \
     translation/texstudio_cs.ts \
     translation/texstudio_de.ts \
     translation/texstudio_el.ts \
@@ -65,6 +66,7 @@ TRANSLATIONS += translation/texstudio_ar.ts \
     translation/texstudio_pl.ts \
     translation/texstudio_pt_BR.ts \
     translation/texstudio_ru_RU.ts \
+    translation/texstudio_sv.ts \
     translation/texstudio_tr_TR.ts \
     translation/texstudio_uk.ts \
     translation/texstudio_vi.ts \
@@ -128,6 +130,7 @@ unix {
     utilities.files += utilities/latex2e.html \
         utilities/latex2e.css \
         translation/texstudio_ar.qm \
+        translation/texstudio_br.qm \
         translation/texstudio_cs.qm \
         translation/texstudio_de.qm \
         translation/texstudio_el.qm \
@@ -144,6 +147,7 @@ unix {
         translation/texstudio_pl.qm \
         translation/texstudio_pt_BR.qm \
         translation/texstudio_ru_RU.qm \
+        translation/texstudio_sv.qm \
         translation/texstudio_tr_TR.qm \
         translation/texstudio_uk.qm \
         translation/texstudio_vi.qm \
@@ -389,23 +393,6 @@ freebsd-* {
     DEFINES += NO_TESTS
     message("tests disabled as you wish.")
 }
-
-
-# ###############################
-# add files to svn if team is set
-CONFIG(team):!CONFIG(build_pass) {
-    SVNPREPATH = ./
-    SVNPATH = /.svn/text-base/
-    SVNEXT = .svn-base
-    ALLFILES = $${HEADERS}
-    ALLFILES += $${SOURCES}
-    ALLFILES += $${FORMS}
-    for(filename, ALLFILES):!exists($${SVNPREPATH}$$dirname(filename)$${SVNPATH}$$basename(filename)$${SVNEXT}) {
-        warning($${filename} not contained in svn base will be added)
-        system(svn add $${filename})
-    }
-}
-OTHER_FILES += universalinputdialog.*
 
 # add git revision
 exists(./.git)  {

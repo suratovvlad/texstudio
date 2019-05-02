@@ -3,17 +3,18 @@ matrix:
   include:
   - env: QT=qt5osx
     os: osx
-    osx_image: xcode9.3
   - env: QT=qt4
     os: linux
   - env: QT=qt5
     os: linux
+    services: xvfb
   - env: QT=qt5NoPoppler
     os: linux
   - env: QT=qt5Release
     os: linux
   - env: QT=qt5win
     os: linux
+    services: docker
 dist: xenial
 sudo: required
 branches:
@@ -26,7 +27,7 @@ before_script:
 - export DISPLAY=:99.0
 - "${TRAVIS_BUILD_DIR}/travis-ci/configure.sh"
 script:
-- if [ $QT = qt5win ]; then PATH=$PATH:/usr/lib/mxe/usr/bin; fi
+- if [ $QT = qt5win ]; then PATH=$PATH:/opt/mxe/usr/bin; fi
 - make -j 2
 - export QT_QPA_PLATFORM=minimal
 - if [ $QT = qt5 ]; then ./texstudio --auto-tests; fi
