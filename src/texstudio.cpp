@@ -813,7 +813,7 @@ void Texstudio::setupMenus()
 
 	submenu = newManagedMenu(menu, "selection", tr("&Selection"));
 	newManagedEditorAction(submenu, "selectAll", tr("Select &All"), "selectAll", Qt::CTRL + Qt::Key_A);
-	newManagedEditorAction(submenu, "selectAllOccurences", tr("Select All &Occurences"), "selectAllOccurences");
+    newManagedEditorAction(submenu, "selectAllOccurences", tr("Select All &Occurrences"), "selectAllOccurences");
 	newManagedEditorAction(submenu, "expandSelectionToWord", tr("Expand Selection to Word"), "selectExpandToNextWord", Qt::CTRL + Qt::Key_D);
 	newManagedEditorAction(submenu, "expandSelectionToLine", tr("Expand Selection to Line"), "selectExpandToNextLine", Qt::CTRL + Qt::Key_L);
 
@@ -4495,7 +4495,15 @@ void Texstudio::normalCompletion()
 	case Token::keyVal_val: {
 		QString word = c.line().text();
 		int col = c.columnNumber();
-		command = Parsing::getCommandFromToken(tk);
+        command = Parsing::getCommandFromToken(tk);
+        if(command=="\\begin"){ // special treatment for begin as it is only meaningful with the env-name
+            TokenList tl = dlh->getCookieLocked(QDocumentLine::LEXER_COOKIE).value<TokenList>();
+            Token tkCmd=Parsing::getCommandTokenFromToken(tl,tk);
+            int k = tl.indexOf(tkCmd) + 1;
+            Token tk2=tl.value(k);
+            QString subcommand=tk2.getText();
+            command+=subcommand;
+        }
 
 		completer->setWorkPath(command);
 		if (!completer->existValues()) {
