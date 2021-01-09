@@ -26,6 +26,8 @@
 #include <qtsingleapplication.h>
 #include <QSplashScreen>
 
+#include <libqdark/QDarkThemePlugin.h>
+
 #ifdef Q_OS_WIN32
 #include "windows.h"
 typedef BOOL (WINAPI *AllowSetForegroundWindowFunc)(DWORD);
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
 
 	try {
 
-		/ Initialize dark theme plugin
+        // Initialize dark theme plugin
 		darkThemePlugin->initialize();
 
 		int execResult = a.exec();
