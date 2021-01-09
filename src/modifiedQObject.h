@@ -4,14 +4,10 @@
 
 #include <qglobal.h>
 
+// Crash handler and its helper functions are available only when using GNU libc
+#if !defined(NO_CRASH_HANDLER) && defined(__GLIBC__)
 
-#ifndef NO_CRASH_HANDLER
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #define ASSERT_THROW Q_DECL_NOTHROW
-#else
-#define ASSERT_THROW
-#endif
 
 
 #ifndef QT_NO_DEBUG

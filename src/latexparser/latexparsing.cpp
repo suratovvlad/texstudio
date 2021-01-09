@@ -36,20 +36,10 @@ TokenList simpleLexLatexLine(QDocumentLineHandle *dlh)
 	present.type = Token::none;
 	present.dlh = dlh;
 	present.argLevel = 0;
-	QChar verbatimSymbol;
-	const QString specialChars = "{([})]";
+    const QString specialChars = "{([<})]>";
 	int i = 0;
 	for (; i < s.length(); i++) {
 		QChar c = s.at(i);
-		if (!verbatimSymbol.isNull()) {
-			if (c == verbatimSymbol) {
-				present.length = 1;
-				lexed.append(present);
-				present.type = Token::none;
-				verbatimSymbol = QChar();
-				continue;
-			}
-		}
 		if (present.type == Token::command && c == '@') {
 			continue; // add @ as letter to command
 		}
@@ -114,15 +104,15 @@ TokenList simpleLexLatexLine(QDocumentLineHandle *dlh)
 		}
 
 		int l = specialChars.indexOf(c);
-		if (l > -1 && l < 3) {
+        if (l > -1 && l < 4) {
 			present.type = Token::TokenType(int(Token::openBrace) + l);
 			present.length = 1;
 			lexed.append(present);
 			present.type = Token::none;
 			continue;
 		}
-		if (l > 2) {
-			present.type = Token::TokenType(int(Token::closeBrace) + (l - 3));
+        if (l > 3) {
+            present.type = Token::TokenType(int(Token::closeBrace) + (l - 4));
 			present.length = 1;
 			lexed.append(present);
 			present.type = Token::none;
@@ -166,20 +156,20 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
 	CommandStack oldCommandStack = dlh->getCookie(QDocumentLine::LEXER_COMMANDSTACK_COOKIE).value<CommandStack >();
 	QString line = dlh->text();
 	bool verbatimMode = false;
-    bool verbatimAfterOptionalArg=false;
 	int level = 0;
-	if (!stack.isEmpty()) {
-	    if (stack.top().type == Token::verbatim) {
-		verbatimMode = true;
-	    } else {
-		level = stack.top().level + 1;
-	    }
-	}
+    if (!stack.isEmpty()) {
+        if (stack.top().type == Token::verbatim) {
+            verbatimMode = true;
+        } else {
+            level = stack.top().level + 1;
+        }
+    }
 	TokenList lexed;
 
 	QString verbatimSymbol;
 	int lastComma = -1;
 	int lastEqual = -1e6;
+    int commentStart=-1;
 	QString keyName;
 
 	int lineLength=line.length();
@@ -194,11 +184,14 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
 	     */
         if (!verbatimSymbol.isNull()) {
             // handle \verb+ ... +  etc.
-            if (tk.type == Token::symbol) {
+            if (tk.type == Token::symbol || tk.type == Token::punctuation) {
                 QString smb = line.mid(tk.start, 1);
                 if (smb == verbatimSymbol) {
                     // stop verbatimSymbol mode
                     verbatimSymbol.clear();
+                    tk.subtype=Token::verbatimStop;
+                    tk.level = level;
+                    lexed << tk;
                     continue;
                 }
             }
@@ -225,7 +218,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
             Token tk3 = tl.at(i + 2);
             if (tk2.type == Token::openBrace && tk3.type == Token::word) {
                 QString env = line.mid(tk3.start, tk3.length);
-                if (lp.possibleCommands["%verbatimEnv"].contains(env)) { // incomplete check if closing correspondents to open !
+                if (lp.possibleCommands["%verbatimEnv"].contains(env)) { // incomplete check if closing corresponds to open !
                     verbatimMode = false;
                     stack.pop();
                 } else
@@ -236,6 +229,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
 	    // non-verbatim handling
 	    if (tk.type == Token::comment){
             lineLength=tk.start; // limit linelength to comment start
+            commentStart=tk.start;
             break; // stop at comment start
 	    }
         // special definition handling, is not interpreted !!
@@ -252,7 +246,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
             }else{
                 if(tk.type==Token::closeBrace){
                     Token tk1=stack.pop();
-                    if(!stack.isEmpty() && stack.top().subtype==Token::definition){ // check if more than openBrace/defintion are on the stack, if yes , juts pop it and continue in definition mode
+                    if(!stack.isEmpty() && stack.top().subtype==Token::definition){ // check if more than openBrace/defintion are on the stack, if yes , just pop it and continue in definition mode
                         tk.subtype=Token::definition;
                         lexed << tk;
                         level=tk1.level; // restore original level
@@ -273,104 +267,77 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                 i++;
                 command.append("*");
             }
-            if (command == "\\verb" || command == "\\verb*") {
-                // special treament for verb
-                if (i + 1 < tl.length()
-                        // While LaTeX allows any character as \verb delimiter following immediately after the
-                        // \verb command, we currently only support single characters that are parsed into a
-                        // separate token; e.g. symbols and punctuation.
-                        // Note that \verb highlighting is done via QNFA, which only highlights a smaller subset
-                        // of the above.
-                        && (tl.at(i + 1).length == 1)
-                        && tl.at(i + 1).start == tk.start + tk.length) {
-                    // well formed \verb
-                    verbatimSymbol = line.mid(tl.at(i + 1).start, 1);
-                    i++;
-                }
-                // not valid \verb
-                if (!stack.isEmpty()) {
-                    tk.subtype = stack.top().subtype;
-                    if (tk.subtype == Token::keyValArg && lastEqual > -1) {
-                        tk.subtype = Token::keyVal_val;
+            // special treatment for character changing commands like \"a (ä)
+            if(tk.length==2 && command[1].isPunct() && command[1]!=QChar('\\') && !QString("()[]{}").contains(command[1])){
+                if (i + 1 < tl.length()) {
+                    Token tk2 = tl.at(i + 1);
+                    if (tk2.start == tk.start + tk.length && tk2.type == Token::word) {
+                        i = i + 1;
+                        tk.length += tk2.length ;
+                        tk.type = Token::word;
                     }
-                }
-                tk.level = level;
-                lexed << tk;
-
-                continue;
-            } else {
-                // special treatment for character changing commands like \"a (ä)
-                if(tk.length==2 && command[1].isPunct() && command[1]!=QChar('\\') && !QString("()[]{}").contains(command[1])){
-                    if (i + 1 < tl.length()) {
-                        Token tk2 = tl.at(i + 1);
-                        if (tk2.start == tk.start + tk.length && tk2.type == Token::word) {
-                            i = i + 1;
-                            tk.length += tk2.length ;
-                            tk.type = Token::word;
-                        }
-                        if (!lexed.isEmpty() && lexed.last().type == Token::word) {
-                            if (lexed.last().start + lexed.last().length == tk.start) {
-                                lexed.last().length += tk.length;
-                                continue;
-                            }
+                    if (!lexed.isEmpty() && lexed.last().type == Token::word) {
+                        if (lexed.last().start + lexed.last().length == tk.start) {
+                            lexed.last().length += tk.length;
+                            continue;
                         }
                     }
                 }
-                if (!stack.isEmpty()) {
-                    tk.subtype = stack.top().subtype;
-                    if (tk.subtype == Token::keyValArg && lastEqual > -1) {
-                        tk.subtype = Token::keyVal_val;
-                        if (!commandStack.isEmpty() && lp.commandDefs.contains(commandStack.top().optionalCommandName + "/" + keyName)) {
-                            CommandDescription cd = lp.commandDefs.value(commandStack.top().optionalCommandName + "/" + keyName);
-                            tk.subtype = cd.argTypes.value(0, Token::keyVal_val);
-                        }
-                    }
-
-                }
-                tk.level = level;
-                if (!commandStack.isEmpty() && commandStack.top().level == level) {
-                    //possible command argument without brackets
-                    CommandDescription &cd = commandStack.top();
-                    if (cd.args > 0) {
-                        cd.optionalArgs = 0; // no optional arguments after mandatory
-                        cd.bracketArgs = 0;
-                        cd.args--;
-                        tk.subtype = cd.argTypes.takeFirst();
-                        tk.level++;
-                    }
-                    if (cd.args <= 0) {
-                        // unknown arg, stop handling this command
-                        commandStack.pop();
-                    }
-                }
-                if (lp.commandDefs.contains(command)) {
-                    CommandDescription cd = lp.commandDefs.value(command);
-                    cd.level = level;
-                    if(cd.bracketCommand){
-                        //command like \left
-                        if (tl.length() > i + 1 && tl.at(i + 1).length == 1 && tl.at(i + 1).start==tk.start+tk.length) {
-                            // add [( etc to command
-                            Token tk2=tl.at(i + 1);
-                            if(Token::tkOpen().contains(tk2.type)||Token::tkClose().contains(tk2.type)){
-                                tk.optionalCommandName=command;
-                                command.append(line.mid(tk2.start, 1));
-                                tk.length++;
-                                i++;
-                            }
-                        }
-
-                    }
-                    if ((cd.args > 0 || cd.optionalArgs > 0 || cd.bracketArgs > 0 ) && tk.subtype != Token::def) { // don't interpret commands in defintion (\newcommand{def})
-                        cd.optionalCommandName=command;
-                        commandStack.push(cd);
-                    }
-                } else {
-                    if(tk.type==Token::command){
-                        tk.type = Token::commandUnknown;
-                    }
-                }
-                lexed << tk;
             }
+            if (!stack.isEmpty()) {
+                tk.subtype = stack.top().subtype;
+                if (tk.subtype == Token::keyValArg && lastEqual > -1) {
+                    tk.subtype = Token::keyVal_val;
+                    if (!commandStack.isEmpty() && lp.commandDefs.contains(commandStack.top().optionalCommandName + "/" + keyName)) {
+                        CommandDescription cd = lp.commandDefs.value(commandStack.top().optionalCommandName + "/" + keyName);
+                        tk.subtype = cd.argTypes.value(0, Token::keyVal_val);
+                    }
+                }
+
+            }
+            tk.level = level;
+            if (!commandStack.isEmpty() && commandStack.top().level == level) {
+                //possible command argument without brackets
+                CommandDescription &cd = commandStack.top();
+                if (cd.args > 0) {
+                    cd.optionalArgs = 0; // no optional arguments after mandatory
+                    cd.bracketArgs = 0;
+                    cd.args--;
+                    tk.subtype = cd.argTypes.takeFirst();
+                    tk.level++;
+                }
+                if (cd.args <= 0) {
+                    // unknown arg, stop handling this command
+                    commandStack.pop();
+                }
+            }
+            if (lp.commandDefs.contains(command) && tk.subtype != Token::definition) {
+                CommandDescription cd = lp.commandDefs.value(command);
+                cd.level = level;
+                if(cd.bracketCommand){
+                    //command like \left
+                    if (tl.length() > i + 1 && tl.at(i + 1).length == 1 && tl.at(i + 1).start==tk.start+tk.length) {
+                        // add [( etc to command
+                        Token tk2=tl.at(i + 1);
+                        if(Token::tkOpen().contains(tk2.type)||Token::tkClose().contains(tk2.type)){
+                            tk.optionalCommandName=command;
+                            command.append(line.mid(tk2.start, 1));
+                            tk.length++;
+                            i++;
+                        }
+                    }
+
+                }
+                if ((cd.args > 0 || cd.optionalArgs > 0 || cd.bracketArgs > 0 || cd.overlayArgs > 0) && tk.subtype != Token::def) { // don't interpret commands in definition (\newcommand{def})
+                    cd.optionalCommandName=command;
+                    commandStack.push(cd);
+                }
+            } else {
+                if(tk.type==Token::command){
+                    tk.type = Token::commandUnknown;
+                }
+            }
+            lexed << tk;
             continue;
         }
         if (Token::tkOpen().contains(tk.type)) {
@@ -407,6 +374,15 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                         continue;
                     }
                 }
+                if (tk.type == Token::less) {
+                    if (cd.overlayArgs > 0) {
+                        cd.overlayArgs--;
+                        tk.subtype = cd.overlayTypes.takeFirst();
+                    } else {
+                        lexed << tk;
+                        continue;
+                    }
+                }
 
                 tk.level = level; // push old level on stack in order to restore that level later and to distinguish between arguments and arbitrary braces
                 tk.argLevel = ConfigManager::RUNAWAYLIMIT; // run-away prevention
@@ -429,12 +405,12 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
             continue;
         }
 	    if (Token::tkClose().contains(tk.type)) {
-		// special treament for brackets as they don't have any syntaxtical meaning except with some commands
-            if (tk.type == Token::closeBracket ) {
+		// special treament for brackets as they don't have any syntactic meaning except with some commands
+            if (tk.type == Token::closeBracket || tk.type == Token::greater ) {
                 if (stack.isEmpty())
                     continue;
                 if (stack.top().type != Token::opposite(tk.type))
-                    continue; //closing bracket is ignored if no correct open is present
+                    continue; //closing bracket/> is ignored if no correct open is present
             }
             if (!stack.isEmpty() && stack.top().type == Token::opposite(tk.type)) {
                 Token tk1 = stack.pop();
@@ -485,12 +461,13 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                                 CommandDescription cd = lp.commandDefs.value("\\begin{" + env + "}", CommandDescription());
                                 // special treatment for verbatim
                                 if (lp.possibleCommands["%verbatimEnv"].contains(env)) {
-                                    if(cd.args==1 && cd.optionalArgs==1){
+                                    if(cd.args==1 && cd.optionalArgs==1 && i<(tl.length()-1) && tl[i+1].type==Token::openSquare){ // next Token needs to be [ i.e. optional arg, otherwise start verbatim directly
                                         // special treatment for \begin{abc}[...]
-                                        verbatimAfterOptionalArg=true;
+                                        cd.verbatimAfterOptionalArg=true;
                                         cd.args--;
                                         cd.argTypes.takeFirst();
                                         cd.optionalCommandName="\\begin{" + env + "}";
+                                        cd.level=tk1.level;
                                         commandStack.push(cd);
                                         forceContinue=true;
                                     }else{
@@ -506,6 +483,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                                         cd.args--;
                                         cd.argTypes.takeFirst();
                                         cd.optionalCommandName="\\begin{" + env + "}";
+                                        cd.level=tk1.level;
                                         commandStack.push(cd);
                                         forceContinue=true;
                                     }
@@ -539,8 +517,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                     if (cd.args <= 0 && cd.bracketArgs <= 0) {
                         // all args handled, stop handling this command
                         commandStack.pop();
-                        if(verbatimAfterOptionalArg){ // delayed verbatim start to handle optional argument
-                            verbatimAfterOptionalArg=false;
+                        if(cd.verbatimAfterOptionalArg){ // delayed verbatim start to handle optional argument
                             verbatimMode = true;
                             Token tk3;
                             tk3.dlh = dlh;
@@ -716,6 +693,9 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
                 tk.level++; // needs tk level be increased
             }
             lexed << tk;
+            if(tk.subtype==Token::verbatimStart){
+                verbatimSymbol = line.mid(tk.start, 1);
+            }
         }
     }
     {
@@ -742,12 +722,16 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
             }
         }
     }
-    if(verbatimAfterOptionalArg){ //optional arg not found
-        Token tk3;
-        tk3.dlh = dlh;
-        tk3.level = level - 1;
-        tk3.type = Token::verbatim;
-        stack.push(tk3);
+    if (!commandStack.isEmpty() && commandStack.top().level == level) {
+        CommandDescription &cd = commandStack.top();
+        if(cd.verbatimAfterOptionalArg){ //optional arg not found
+            Token tk3;
+            tk3.dlh = dlh;
+            tk3.level = level;
+            tk3.type = Token::verbatim;
+            cd.verbatimAfterOptionalArg=false; // don't search again on next line
+            stack.push(tk3);
+        }
     }
 
     dlh->setCookie(QDocumentLine::LEXER_COOKIE, QVariant::fromValue<TokenList>(lexed));
@@ -765,6 +749,7 @@ bool latexDetermineContexts2(QDocumentLineHandle *dlh, TokenStack &stack, Comman
     }
     dlh->setCookie(QDocumentLine::LEXER_REMAINDER_COOKIE, QVariant::fromValue<TokenStack>(stack));
     dlh->setCookie(QDocumentLine::LEXER_COMMANDSTACK_COOKIE, QVariant::fromValue<CommandStack>(commandStack));
+    dlh->setCookie(QDocumentLine::LEXER_COMMENTSTART_COOKIE, QVariant::fromValue<QPair<int,int> >({commentStart, Token::unknownComment}));
     dlh->unlock();
 
     bool remainderChanged = (stack != oldRemainder) || (commandStack != oldCommandStack) ;
@@ -829,7 +814,7 @@ QString getArg(const TokenList &tl, Token::TokenType type)
                 result = line.mid(1, line.length() - 2);
             }
             if (Token::tkOpen().contains(tk.type)) {
-                result = line.mid( 1) + findRestArg(tk.dlh, Token::opposite(tk.type), ConfigManager::RUNAWAYLIMIT);
+                result = line.mid( 1) + findRestArg(tk.dlh, Token::opposite(tk.type), -1,ConfigManager::RUNAWAYLIMIT);
             }
             if (Token::tkClose().contains(tk.type)) {
                 result = line.left(line.length()-1);
@@ -844,11 +829,11 @@ QString getArg(const TokenList &tl, Token::TokenType type)
 }
 
 
-QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentList::ArgType type,bool enableMultiLineSearch)
+QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentList::ArgType type,bool enableMultiLineSearch,int hint)
 {
 	// argNumber 0 -> first argument
     QDocument *doc=dlh->document();
-    int lineNr=doc->indexOf(dlh);
+    int lineNr=-1;
 
 	// do only create the relevant token sets once and keep them around for later use for speedup.
 	static const QSet<Token::TokenType> tokensForMandatoryArg = QSet<Token::TokenType>()
@@ -880,7 +865,7 @@ QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentLi
     if(!tl.isEmpty()){
         level=tl.first().level;
     }
-    while( (lineNr)<doc->lineCount() && cnt<ConfigManager::RUNAWAYLIMIT){
+    while( cnt<ConfigManager::RUNAWAYLIMIT){
         QString line = dlh ? dlh->text() : "";
         foreach (Token tk,tl) {
             if(tk.level>level)
@@ -909,7 +894,7 @@ QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentLi
                             // line break acts as space in latex
                             result=line.mid(tk.innerStart(), tk.innerLength())+" ";
                         }
-                        result.append(findRestArg(dlh, Token::opposite(tk.type), ConfigManager::RUNAWAYLIMIT));
+                        result.append(findRestArg(dlh, Token::opposite(tk.type), lineNr<0 ? hint : lineNr ,ConfigManager::RUNAWAYLIMIT));
                     }else{
                         result = line.mid(tk.innerStart(), tk.innerLength());
                     }
@@ -937,7 +922,13 @@ QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentLi
         }
         if(!enableMultiLineSearch)
             break;
+        if(lineNr<0){
+            lineNr=doc->indexOf(dlh,hint); // perform lineNr search only when really needed
+        }
         lineNr++;
+        if(lineNr>=doc->lineCount()){
+            break;
+        }
         dlh=doc->line(lineNr).handle();
         if(dlh)
             tl= dlh->getCookie(QDocumentLine::LEXER_COOKIE).value<TokenList>();
@@ -948,13 +939,13 @@ QString getArg(TokenList tl, QDocumentLineHandle *dlh, int argNumber, ArgumentLi
 }
 
 
-QString findRestArg(QDocumentLineHandle *dlh, Token::TokenType type, int count)
+QString findRestArg(QDocumentLineHandle *dlh, Token::TokenType type, int hint, int count)
 {
 	// dlh is current line, next line will be checked here!!!
     if (count <= 0)
 		return QString(); // limit search depth
 	QDocument *document = dlh->document();
-	int index = document->indexOf(dlh);
+    int index = document->indexOf(dlh,hint);
 	if (index + 1 >= document->lines())
 		return QString(); // last line reached
 	dlh = document->line(index + 1).handle();
@@ -986,7 +977,7 @@ QString findRestArg(QDocumentLineHandle *dlh, Token::TokenType type, int count)
 			return result.left(tk.start + 1);
 		}
 	}
-	return result + findRestArg(dlh, type, count - 1);
+    return result + findRestArg(dlh, type, index+1, count - 1);
 }
 
 

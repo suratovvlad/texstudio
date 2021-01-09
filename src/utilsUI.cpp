@@ -2,42 +2,94 @@
 #include "utilsSystem.h"
 #include "utilsVersion.h"
 #include "filedialog.h"
+#include <QErrorMessage>
 
 
 extern void hideSplash();
 
 namespace UtilsUi {
-
+/*!
+ * \brief show confirmation message box
+ * \param message
+ * \return yes=true
+ */
 bool txsConfirm(const QString &message)
 {
 	hideSplash();
 	return QMessageBox::question(QApplication::activeWindow(), TEXSTUDIO, message, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
 }
-
+/*!
+ * \brief show confirmation with warning message box
+ * \param message
+ * \return yes=true
+ */
 bool txsConfirmWarning(const QString &message)
 {
 	hideSplash();
 	return QMessageBox::warning(QApplication::activeWindow(), TEXSTUDIO, message, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
 }
-
+/*!
+ * \brief show confirmation with warning message box
+ * \param message
+ * \param rememberChoice if true, return true and avoid Msg. rememberChoice is overwritten by checkbox result.
+ * \return yes=true
+ */
+bool txsConfirmWarning(const QString &message,txsWarningState &rememberChoice)
+{
+    switch (rememberChoice){
+        case RememberFalse: return false ;
+        case RememberTrue: return true ;
+        default: ;
+    }
+    hideSplash();
+    QMessageBox msg(QMessageBox::Warning,TEXSTUDIO,message,QMessageBox::Yes | QMessageBox::No,QApplication::activeWindow());
+    QCheckBox *cb=new QCheckBox(QApplication::tr("Remember choice ?"));
+    msg.setCheckBox(cb);
+    bool result=(msg.exec()==QMessageBox::Yes);
+    if(msg.checkBox()->checkState()==Qt::Checked){
+        if(result){
+            rememberChoice=RememberTrue;
+        }else{
+            rememberChoice=RememberFalse;
+        }
+    }
+    return result;
+}
+/*!
+ * \brief show confirmation with warning message box
+ * Here the available buttons can be set.
+ * \param message
+ * \param buttons
+ * \return pressed button
+ */
 QMessageBox::StandardButton txsConfirmWarning(const QString &message, QMessageBox::StandardButtons buttons)
 {
 	hideSplash();
 	return QMessageBox::warning(QApplication::activeWindow(), TEXSTUDIO, message, buttons, QMessageBox::Yes);
 }
-
+/*!
+ * \brief show information message pop-up
+ * \param message
+ */
 void txsInformation(const QString &message)
 {
 	hideSplash();
 	QMessageBox::information(QApplication::activeWindow(), TEXSTUDIO, message, QMessageBox::Ok);
 }
-
+/*!
+ * \brief show warning message pop-up
+ * \param message
+ */
 void txsWarning(const QString &message)
 {
 	hideSplash();
 	QMessageBox::warning(QApplication::activeWindow(), TEXSTUDIO, message, QMessageBox::Ok);
 }
-
+/*!
+ * \brief show warning message pop-up
+ * \param message
+ * \param noWarnAgain
+ */
 void txsWarning(const QString &message, bool &noWarnAgain)
 {
 	hideSplash();
@@ -49,7 +101,10 @@ void txsWarning(const QString &message, bool &noWarnAgain)
 	msgBox.exec();
 	noWarnAgain = cbNoWarnAgain.isChecked();
 }
-
+/*!
+ * \brief show critical-error message box
+ * \param message
+ */
 void txsCritical(const QString &message)
 {
 	hideSplash();
@@ -87,7 +142,7 @@ QToolButton *createComboToolButton(QWidget *parent, const QStringList &list, con
 		QString text = list[i];
 		//QIcon icon = (i<icons.length()) ? icons[i] : QIcon();
 		QAction *mAction = mMenu->addAction(text, receiver, member);
-		max = qMax(max, fm.width(text + "        "));
+		max = qMax(max, getFmWidth(fm, text + "        "));
 		if (i == defaultIndex) {
 			combo->setDefaultAction(mAction);
 			defaultSet = true;
@@ -249,7 +304,7 @@ static QString strippedActionText(QString s) {
  */
 void addShortcutToToolTip(QAction *action)
 {
-	if (!action->shortcut().isEmpty() and !action->property("hasShortcutToolTip").toBool()) {
+	if (!action->shortcut().isEmpty() && !action->property("hasShortcutToolTip").toBool()) {
 		QString tooltip = action->property("tooltipBackup").toString();
 		if (tooltip.isEmpty()) {
 			tooltip = action->toolTip();
@@ -301,7 +356,7 @@ void updateToolTipWithShortcut(QAction *action, bool showShortcut) {
  * \note ItemViews will be switched to ScrollPerPixel scrollMode.
  */
 void enableTouchScrolling(QWidget *widget, bool enable) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)  && !defined(Q_OS_MAC)
+#if !defined(Q_OS_MAC)
 	if (enable) {
 		QAbstractItemView *view = qobject_cast<QAbstractItemView *>(widget);
 		if (view) {
@@ -331,5 +386,56 @@ void resizeInFontHeight(QWidget *w, int width, int height)
 	//qDebug() << "resizeInFontHeight new size:" << newSize.width() / (float) h << newSize.height() / (float) h;
 	w->resize(newSize);
 }
+
+/*!
+ * \brief Given font metrics return pixel size of a character
+ * \param[in] fm Font metrics
+ * \param[in] ch Character
+ * \returns Returns pixel size of character
+ */
+int getFmWidth(const QFontMetrics &fm, QChar ch)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+	return fm.horizontalAdvance(ch);
+#else
+	return fm.width(ch);
+#endif
+}
+
+/*!
+ * \brief Given font metrics return pixel size of a text string
+ * \param[in] fm Font metrics
+ * \param[in] text Text string
+ * \param[in] len Only calculate width of the first len characters of the string. If not specified,
+ * then -1 is assumed which means calculate width of the whole string.
+ * \returns Returns pixel size of the text string
+ */
+int getFmWidth(const QFontMetrics &fm, const QString &text, int len)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+	return fm.horizontalAdvance(text, len);
+#else
+	return fm.width(text, len);
+#endif
+}
+
+/*!
+ * \brief Return the screen geometry for a given point
+ * \param[in] pos Position
+ * \returns The screen geometry at the given point
+ */
+QRect getAvailableGeometryAt(const QPoint &pos)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+	QScreen *pScreen = QGuiApplication::screenAt(pos);
+	if (pScreen == nullptr) {
+		return QRect();
+	}
+	return pScreen->availableGeometry();
+#else
+	return QApplication::desktop()->availableGeometry(pos);
+#endif
+}
+
 
 }  // namespace UtilsUi

@@ -25,6 +25,7 @@
 
 #include <QString>
 #include <QRegExp>
+#include <QRegularExpression>
 #include <QPointer>
 #include <QAbstractScrollArea>
 #include <QWidget>
@@ -50,10 +51,12 @@ class QCE_EXPORT QDocumentSearch: public QObject
 			Silent			= 32,
 			HighlightAll	= 64,
 			EscapeSeq		= 128,
-			HighlightReplacements	= 64
+            filterByFormat  = 256,
+            NonGreedy = 512,
+            HighlightReplacements	= 64
 		};
 		
-		Q_DECLARE_FLAGS(Options, Option);
+        Q_DECLARE_FLAGS(Options, Option)
 		
 		QDocumentSearch(QEditor *e, const QString& f, Options opt, const QString& r = QString());
 		~QDocumentSearch();
@@ -65,7 +68,10 @@ class QCE_EXPORT QDocumentSearch: public QObject
 		bool hasOption(Option opt) const;
 		void setOption(Option opt, bool on);
 		void setOptions(Options options);
-		
+
+		void setFilteredFormats(QList<int> ids, bool inverted = false);
+		QList<int> getFilteredFormats() const;
+
 		QString replaceText() const;
 		void setReplaceText(const QString& r);
 		QString replaceTextExpanded() const;
@@ -94,19 +100,27 @@ class QCE_EXPORT QDocumentSearch: public QObject
 		void searchMatches(const QDocumentCursor& subHighlightScope=QDocumentCursor(), bool clearAll=true, bool clearSubScope=true);
 		void clearMatches();
 		void clearReplacements();
+
+		bool isAcceptedFormat(int formatIds) const;
 		
 		void recreateRegExp();
 		
 //		int m_index;
 		Options m_option;
 		QString m_string;
-		QRegExp m_regexp;
+        QRegularExpression m_regularExpression;
+        QRegularExpressionMatch m_match;
+
+
 		QString m_replace;
 		QPointer<QEditor> m_editor;
 		QDocumentCursor m_cursor, m_scope, m_highlightedScope, m_searchedScope, m_lastReplacedPosition;
 		QSet<QDocumentLineHandle*> m_highlights, m_highlightedReplacements;
 
 		int m_replaced,m_replaceDeltaLength,m_replaceDeltaLines;
+
+		QList<int> m_filteredIds;
+		bool m_filteredIdsInverted;
 	private slots:
 		void documentContentChanged(int line, int n);
 		void visibleLinesChanged();

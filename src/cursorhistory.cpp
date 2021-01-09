@@ -30,7 +30,7 @@ bool CursorHistory::insertPos(QDocumentCursor cur, bool deleteBehindCurrent)
 	CursorPosition pos(cur);
 	connectUnique(pos.doc(), SIGNAL(destroyed(QObject *)), this, SLOT(documentClosed(QObject *)));
 	// TODO destroyed() may be duplicate to aboutToDeleteDocument() - needs more testing. anyway it does not harm
-	connectUnique(pos.doc(), SIGNAL(lineDeleted(QDocumentLineHandle *)), this, SLOT(lineDeleted(QDocumentLineHandle *)));
+    connectUnique(pos.doc(), SIGNAL(lineDeleted(QDocumentLineHandle *,int)), this, SLOT(lineDeleted(QDocumentLineHandle *,int)));
 	connectUnique(pos.doc(), SIGNAL(lineRemoved(QDocumentLineHandle *)), this, SLOT(lineDeleted(QDocumentLineHandle *)));
 
 	if (deleteBehindCurrent && currentEntry != history.end()) {
@@ -50,11 +50,11 @@ bool CursorHistory::insertPos(QDocumentCursor cur, bool deleteBehindCurrent)
 		return false;
 	}
 
-	if (history.count() >= m_maxLength) {
+    if (history.size() >= m_maxLength) {
 		if (currentEntry == history.begin()) {
-			history.removeLast();
+            history.pop_back();
 		} else {
-			history.removeFirst();
+            history.pop_front();
 		}
 	}
 
@@ -137,7 +137,7 @@ QDocumentCursor CursorHistory::back(const QDocumentCursor &currentCursor)
 
 QDocumentCursor CursorHistory::forward(const QDocumentCursor &currentCursor)
 {
-	Q_UNUSED(currentCursor);
+	Q_UNUSED(currentCursor)
 	CursorPosList::iterator next = nextValidEntry(currentEntry);
 	if (currentEntry == history.end() || next == history.end()) {
 		updateNavActions();
@@ -169,7 +169,7 @@ void CursorHistory::documentClosed(QObject *obj)
 		aboutToDeleteDoc(doc);
 }
 
-void CursorHistory::lineDeleted(QDocumentLineHandle *dlh)
+void CursorHistory::lineDeleted(QDocumentLineHandle *dlh,int)
 {
 	for (CursorPosList::iterator it = history.begin(); it != history.end(); ++it) {
 		if ( (*it).dlh() == dlh ) {

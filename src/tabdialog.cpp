@@ -13,6 +13,8 @@
 #include "utilsUI.h"
 //#include <QDebug>
 
+#include "smallUsefulFunctions.h"
+
 
 TabDialog::TabDialog(QWidget *parent, const char *name)
 	:QDialog( parent)
@@ -57,11 +59,34 @@ TabDialog::TabDialog(QWidget *parent, const char *name)
 	ui.comboBoxColAl->insertItem(0, tr("Center", "tabular alignment"));
 	ui.comboBoxColAl->insertItem(1, tr("Left", "tabular alignment"));
 	ui.comboBoxColAl->insertItem(2, tr("Right", "tabular alignment"));
-	ui.comboBoxColAl->insertItem(3, tr("p{} (fixed width - justified)", "tabular alignment"));
-	ui.comboBoxColAl->insertItem(4, tr("p{} (fixed width - left)", "tabular alignment"));
-	ui.comboBoxColAl->insertItem(5, tr("p{} (fixed width - center)", "tabular alignment"));
-	ui.comboBoxColAl->insertItem(6, tr("p{} (fixed width - right)", "tabular alignment"));
+	ui.comboBoxColAl->insertSeparator(3);
+	ui.comboBoxColAl->insertItem(4, tr("p{} (fixed width - top / justified)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(5, tr("p{} (fixed width - top / left)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(6, tr("p{} (fixed width - top / center)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(7, tr("p{} (fixed width - top / right)", "tabular alignment"));
+	ui.comboBoxColAl->insertSeparator(8);
+	ui.comboBoxColAl->insertItem(9, tr("m{} (fixed width - center / justified)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(10, tr("m{} (fixed width - center / left)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(11, tr("m{} (fixed width - center / center)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(12, tr("m{} (fixed width - center / right)", "tabular alignment"));
+	ui.comboBoxColAl->insertSeparator(13);
+	ui.comboBoxColAl->insertItem(14, tr("b{} (fixed width - bottom / justified)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(15, tr("b{} (fixed width - bottom / left)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(16, tr("b{} (fixed width - bottom / center)", "tabular alignment"));
+	ui.comboBoxColAl->insertItem(17, tr("b{} (fixed width - bottom / right)", "tabular alignment"));
 	ui.comboBoxColAl->setCurrentIndex(0);
+	ui.comboBoxColAl->setMaxVisibleItems(18);
+
+	// alignList must match the entires in ui.comboBoxColAl
+	alignlist << "c" << "l" << "r"
+			  << QString("<SEP>")  << "p{3cm}" << ">{\\raggedright\\arraybackslash}p{3cm}" << ">{\\centering\\arraybackslash}p{3cm}" << ">{\\raggedleft\\arraybackslash}p{3cm}"
+			  << QString("<SEP>")  << "m{3cm}" << ">{\\raggedright\\arraybackslash}m{3cm}" << ">{\\centering\\arraybackslash}m{3cm}" << ">{\\raggedleft\\arraybackslash}m{3cm}"
+			  << QString("<SEP>")  << "b{3cm}" << ">{\\raggedright\\arraybackslash}p{3cm}" << ">{\\centering\\arraybackslash}b{3cm}" << ">{\\raggedleft\\arraybackslash}b{3cm}";
+
+	alignlistLabels << QString("c") << QString("l") << QString("r")
+			  << QString("<SEP>") << QString("j p{}") << QString("l p{}") << QString("c p{}") << QString("r p{}")
+			  << QString("<SEP>")  << QString("j m{}") << QString("l m{}") << QString("c m{}") << QString("r m{}")
+			  << QString("<SEP>")  << QString("j b{}") << QString("l b{}") << QString("c b{}") << QString("r b{}");
 
 	ui.comboLeftBorder->insertItem(0, "|");
 	ui.comboLeftBorder->insertItem(1, "||");
@@ -74,6 +99,9 @@ TabDialog::TabDialog(QWidget *parent, const char *name)
 	ui.comboBoxEndBorder->insertItem(2, tr("None", "tabular right border"));
 	ui.comboBoxEndBorder->insertItem(3, tr("@{text}", "tabular right border"));
 	ui.comboLeftBorder->setCurrentIndex(0);
+
+	// borderlist must match the entires in ui.comboLeftBorder and ui.comboBoxEndBorder
+	borderlist << QString("|") << QString("||") << QString("") << QString("@{}");
 
 	ui.spinBoxNumCol->setValue(1);
 	ui.spinBoxNumLi->setValue(1);
@@ -114,6 +142,97 @@ TabDialog::TabDialog(QWidget *parent, const char *name)
 
 TabDialog::~TabDialog(){
 }
+
+/*!
+ * Return the LaTeX formatted text describing the table.
+ */
+QString TabDialog::getLatexText()
+{
+	QString placeholder;//(0x2022);
+
+	int nrows = ui.spinBoxRows->value();
+	int ncols = ui.spinBoxColumns->value();
+	QString text = "\\begin{tabular}{";
+	for ( int j = 0; j < ncols; j++) {
+		text += borderlist.at(colDataList.at(j).leftborder);
+		text += alignlist.at(colDataList.at(j).alignment);
+	}
+	text += borderlist.at(ui.comboBoxEndBorder->currentIndex());
+	text += "}\n";
+	QTableWidgetItem *item = nullptr;
+	for ( int i = 0; i < nrows; i++) {
+		if (liDataList.at(i).topborder) text += "\\hline\n";
+		if (ui.checkBoxMargin->isChecked()) text += "\\rule[-1ex]{0pt}{2.5ex} ";
+		if (liDataList.at(i).merge && (liDataList.at(i).mergeto > liDataList.at(i).mergefrom)) {
+			QString el = "";
+			for ( int j = 0; j < ncols; j++) {
+				item = ui.tableWidget->item(i, j);
+				QString itemText = (item) ? textToLatex(item->text()) : "";
+				if (j == liDataList.at(i).mergefrom - 1) {
+					el += itemText;
+					text += "\\multicolumn{";
+					text += QString::number(liDataList.at(i).mergeto - liDataList.at(i).mergefrom + 1);
+					text += "}{";
+					if ((j == 0) && (colDataList.at(j).leftborder < 2)) text += borderlist.at(colDataList.at(j).leftborder);
+					if (colDataList.at(j).alignment < 3) text += alignlist.at(colDataList.at(j).alignment);
+					else text += "c";
+					if (liDataList.at(i).mergeto == ncols) text += borderlist.at(ui.comboBoxEndBorder->currentIndex());
+					else text += borderlist.at(colDataList.at(liDataList.at(i).mergeto).leftborder);
+					text += "}{";
+				} else if (j == liDataList.at(i).mergeto - 1) {
+					el += itemText;
+					if (el.isEmpty()) el = placeholder;
+					text += el + "}";
+					if (j < ncols - 1) text += " & ";
+					else text += " \\\\\n";
+				} else if ((j > liDataList.at(i).mergefrom - 1) && (j < liDataList.at(i).mergeto - 1)) {
+					el += itemText;
+				} else {
+					if (itemText.isEmpty()) {
+						itemText = placeholder;
+					}
+					text += itemText;
+					if (j < ncols - 1) text += " & ";
+					else text += " \\\\\n";
+				}
+
+			}
+		} else {
+			for ( int j = 0; j < ncols - 1; j++) {
+				item = ui.tableWidget->item(i, j);
+				QString itemText = (item) ? textToLatex(item->text()) : "";
+				if (itemText.isEmpty()) {
+					itemText = placeholder;
+				}
+				text += itemText + " & ";
+			}
+			item = ui.tableWidget->item(i, ncols - 1);
+			QString itemText = (item) ? textToLatex(item->text()) : "";
+			if (itemText.isEmpty()) {
+				itemText = placeholder;
+			}
+			text += itemText + " \\\\\n";
+		}
+	}
+	if (ui.checkBoxBorderBottom->isChecked())
+		text += "\\hline\n\\end{tabular}";
+	else
+		text += "\\end{tabular}";
+	return text;
+}
+
+/*!
+ * Return a list of packages the given latex table code depends upon.
+ */
+QStringList TabDialog::getRequiredPackages(const QString &text)
+{
+	QStringList requiredPackages;
+	if (text.contains("arraybackslash")) {
+		requiredPackages << "array";
+	}
+	return requiredPackages;
+}
+
 void TabDialog::NewRows(int num)
 {
 	ui.tableWidget->setRowCount( num );
@@ -244,18 +363,15 @@ void TabDialog::showColRowSettings(int row,int column)
 
 void TabDialog::updateTableWidget()
 {
-	QStringList borderlist, alignlist;
-	borderlist<< QString("|") << QString("||") << QString("") << QString("@{}");
-	alignlist << QString("c") << QString("l") << QString("r") << QString("j p{}") << QString("l p{}") << QString("c p{}") << QString("r p{}");
-	int y = ui.spinBoxRows->value();
-	int x = ui.spinBoxColumns->value();
+	int nrows = ui.spinBoxRows->value();
+	int ncols = ui.spinBoxColumns->value();
 	QStringList headerList;
 	QString tag="";
-	for ( int j=0;j<x;j++)
+	for ( int j=0;j<ncols;j++)
 	{
 		tag=borderlist.at(colDataList.at(j).leftborder);
-		tag+=alignlist.at(colDataList.at(j).alignment);
-		if (j<x-1) headerList.append(tag);
+		tag+=alignlistLabels.at(colDataList.at(j).alignment);
+		if (j<ncols-1) headerList.append(tag);
 	}
 	tag+=borderlist.at(ui.comboBoxEndBorder->currentIndex());
 	headerList.append(tag);
@@ -265,9 +381,9 @@ QColor spancolor = selBlendColor.dark( 140 );
 spancolor.setAlphaF( 0.2 );*/
 	QTableWidgetItem *item, *new_item;
 	QString content;
-	for ( int i=0;i<y;i++)
+	for ( int i=0;i<nrows;i++)
 	{
-		for ( int j=0;j<x;j++)
+		for ( int j=0;j<ncols;j++)
 		{
 			item=ui.tableWidget->item(i,j);
 			if (item)

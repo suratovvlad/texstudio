@@ -6,18 +6,24 @@
 
 #include "mostQtHeaders.h"
 
+#ifdef INTERNAL_TERMINAL
+#include <qtermwidget5/qtermwidget.h>
+#endif
+
 #include "titledpanel.h"
 #include "logeditor.h"
 #include "latexlog.h"
 #include "latexlogwidget.h"
 #include "searchresultwidget.h"
 
+class InternalTerminalConfig;
+
 class PreviewWidget : public QScrollArea
 {
 	Q_OBJECT
 
 public:
-	explicit PreviewWidget(QWidget *parent = 0);
+    explicit PreviewWidget(QWidget *parent = nullptr);
 
 public slots:
 	void previewLatex(const QPixmap &previewImage);
@@ -39,20 +45,48 @@ private:
 	bool mFit;
 };
 
+#ifdef INTERNAL_TERMINAL
+class TerminalWidget : public QWidget
+{
+	Q_OBJECT
+
+public:
+	  explicit TerminalWidget(QWidget *parent = nullptr, InternalTerminalConfig *terminalConfig = nullptr);
+    ~TerminalWidget();
+	void setCurrentFileName(const QString &filename);
+	void updateSettings(bool noreset=false);
+	bool eventFilter(QObject *watched, QEvent *event);	
+	virtual void showEvent(QShowEvent *event);
+private slots:
+	void qTermWidgetFinished();
+
+private :
+	QString curShell;
+	void initQTermWidget();
+	QTermWidget *qTermWidget;
+	QHBoxLayout *layout;
+	InternalTerminalConfig *terminalConfig;
+};
+#endif
+
 class OutputViewWidget: public TitledPanel
 {
 	Q_OBJECT
 
 public:
-	explicit OutputViewWidget(QWidget *parent = 0);
+	  explicit OutputViewWidget(QWidget *parent = nullptr, InternalTerminalConfig *terminalConfig = nullptr);
 
 	const QString MESSAGES_PAGE;
 	const QString LOG_PAGE;
 	const QString PREVIEW_PAGE;
+	const QString TERMINAL_PAGE;
 	const QString SEARCH_RESULT_PAGE;
 
 	LatexLogWidget *getLogWidget() { return logWidget; }
 	SearchResultWidget *getSearchResultWidget() { return searchResultWidget; }
+#ifdef INTERNAL_TERMINAL
+	TerminalWidget *getTerminalWidget() { return terminalWidget; }
+#endif
 	bool isPreviewPanelVisible();
 	void setMessage(const QString &message); //set the message text (don't change page and no auto-show)
 	bool childHasFocus();
@@ -72,6 +106,9 @@ signals:
 
 private:
 	PreviewWidget *previewWidget;
+#ifdef INTERNAL_TERMINAL
+	TerminalWidget *terminalWidget;
+#endif
 	LatexLogWidget *logWidget;
 	SearchResultWidget *searchResultWidget;
 	LogEditor *OutputMessages;
@@ -88,7 +125,7 @@ class SidePanel: public TitledPanel
 	Q_OBJECT
 
 public:
-	SidePanel(QWidget *parent = 0) : TitledPanel(parent) { setFrameStyle(QFrame::NoFrame); }
+    SidePanel(QWidget *parent = nullptr) : TitledPanel(parent) { setFrameStyle(QFrame::NoFrame); }
 	QSize sizeHint() const { return QSize(280, 0); }
 };
 
@@ -98,7 +135,7 @@ class CustomWidgetList: public QWidget
 	Q_OBJECT
 
 public:
-	CustomWidgetList(QWidget *parent = 0);
+    CustomWidgetList(QWidget *parent = nullptr);
 	void addWidget(QWidget *widget, const QString &id, const QString &text, const QString &iconName);
 	void setWidgetText(const QString &id, const QString &text);
 	void setWidgetText(QWidget *widget, const QString &text);
@@ -140,7 +177,6 @@ private:
 	//new layout
 	QStackedWidget *stack;
 	QToolBar *toolbar;
-
 };
 
 #endif

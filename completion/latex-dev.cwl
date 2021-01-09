@@ -1,5 +1,6 @@
 # latex mode: LaTeX commands (package level)
 # dani/2006-02-18
+# muzimuzhi/8 Jul 2019
 # commands with big Letters and others
 \AtBeginDocument{code}#*
 \AtEndDocument{code}#*
@@ -8,11 +9,16 @@
 \CheckCommand{cmd}[args][default]{def}#*
 \CheckCommand{cmd}[args]{def}#*
 \CheckCommand{cmd}{def}#*
-\ClassError{class}{text}#*
-\ClassInfo{class}{text}#*
-\ClassWarning{class}{text}#*
+\CheckCommand*{cmd}[args][default]{def}#*
+\CheckCommand*{cmd}[args]{def}#*
+\CheckCommand*{cmd}{def}#*
+\ClassError{class name}{error text}{help text}#*
+\ClassInfo{class name}{info text}#*
+\ClassInfoNoLine{class name}{info text}
+\ClassWarning{class name}{warning text}#*
+\ClassWarningNoLine{class name}{warning text}#*
 \CurrentOption#*
-\DeclareFixedFont{cmd}{encoding}{family}{series}{shape}{size}#*
+\DeclareFixedFont{cmd}{encoding}{family}{series}{shape}{size}#*d
 \DeclareFontEncoding{encoding}{text-settings}{math-settings}#*
 \DeclareFontEncodingDefaults{text-settings}{math-settings}#*
 \DeclareFontFamily{encoding}{family}{loading-settings}#*
@@ -28,33 +34,38 @@
 \DeclareOption*{code}#*
 \DeclareOption{option}{code}#*
 \DeclareRobustCommand{cmd}[args][default]{def}#*d
-\DeclareRobustCommand{cmd}[args]{def}#*
-\DeclareRobustCommand{cmd}{def}#*
+\DeclareRobustCommand{cmd}[args]{def}#*d
+\DeclareRobustCommand{cmd}{def}#*d
+\DeclareRobustCommand*{cmd}[args][default]{def}#*d
+\DeclareRobustCommand*{cmd}[args]{def}#*d
+\DeclareRobustCommand*{cmd}{def}#*d
 \DeclareSizeFunction{name}{code}#*
 \DeclareSymbolFont{sym-font}{encoding}{family}{series}{shape}#*
 \DeclareSymbolFontAlphabet{math-alph}{sym-font}#*
 \DeclareTextAccent{def}{encoding}{character}#*
-\DeclareTextCommand{cmd}{encoding}[num][default]{definition}#*
+\DeclareTextCommand{cmd}{encoding%definition}[num][default]{definition}#*d
 \DeclareTextComposite{def}{encoding}{character}{character}#*
-\DeclareTextCompositeCommand{cmd}{encoding}{letter}{definition}#*
-\DeclareTextFontCommand{cmd}{font-switches}#*
+\DeclareTextCompositeCommand{cmd}{encoding%definition}{letter%definition}{definition}#*d
+\DeclareTextFontCommand{cmd}{font-switches%definition}#*d
 \DeclareTextSymbol{def}{encoding}{code}#*
 \ExecuteOptions{optionlist}#*
 \IfFileExists{file}{then}{else}#*
 \InputIfFileExists{file}{then}{else}#*
 \LastDeclaredEncoding#*
-\LoadClass[optionlist]{class}#*
-\LoadClass[optionlist]{class}[release]#*
-\LoadClass{class}#u*
-\LoadClass{class}[release]#*
-\LoadClassWithOptions{class}#u*
+\LoadClass[optionlist]{class}#*u
+\LoadClass[optionlist]{class}[release]#*u
+\LoadClass{class}#*u
+\LoadClass{class}[release]#*u
+\LoadClassWithOptions{class}#*u
+\LoadClassWithOptions{class}[release]#*u
 \NeedsTeXFormat{format}#*
 \NeedsTeXFormat{format}[release]#*
 \OptionNotUsed#*
-\PackageError{text}#*
-\PackageInfo{text}#*
-\PackageWarning{text}#*
-\PackageWarningNoLine{text}#*
+\PackageError{package name}{error text}{help text}#*
+\PackageInfo{package name}{info text}#*
+\PackageInfoNoLine{package name}{info text}#*
+\PackageWarning{package name}{warning text}#*
+\PackageWarningNoLine{package name}{warning text}#*
 \PassOptionsToClass{optionlist}{class}#*
 \PassOptionsToPackage{optionlist}{package}#*
 \ProcessOptions#*
@@ -66,11 +77,12 @@
 \ProvidesPackage{name}#*
 \ProvidesPackage{name}[release info]#*
 \ProvideTextCommand{cmd}{encoding}[num][default]{definition}#*
-\RequirePackage[optionlist]{package}#*
-\RequirePackage[optionlist]{package}[release]#*
+\RequirePackage[optionlist]{package}#*u
+\RequirePackage[optionlist]{package}[release]#*u
 \RequirePackage{package}#u
-\RequirePackage{package}[release]#*
-\RequirePackageWithOptions{package}#u*
+\RequirePackage{package}[release]#*u
+\RequirePackageWithOptions{package}#*u
+\RequirePackageWithOptions{package}[release]#*u
 # counter, lengths and dimens
 \setcounter{counter}{value}#*
 \setlanguage{language}#*
@@ -118,20 +130,16 @@
 \thesubsubsection#*
 \thetable#*
 # boxes
-\savebox{cmd}[width][pos]{text}#*
-\savebox{cmd}[width]{text}#*
-\savebox{cmd}{text}#*
-\dashbox{dashlength}(width,height)[position]{text}#*
-\dashbox{dashlength}(width,height){text}#*
-\makebox(width,height)[position]{text}#*
-\makebox(width,height){text}#*
+\savebox{box}[width][position]{text}#*
+\savebox{box}[width]{text}#*
+\savebox{box}{text}#*
 \makebox[width][position]{text}#*
 \makebox[width]{text}#*
-\usebox{\box}#*
-\raisebox{distance}[extendabove][extendbelow]{text}#*
-\raisebox{distance}[extendabove]{text}#*
-\raisebox{distance}{text}#*
-\newsavebox{\box}#*d
+\usebox{box}#*
+\raisebox{raise%l}[height][depth]{text}#*
+\raisebox{raise%l}[height]{text}#*
+\raisebox{raise%l}{text}#*
+\newsavebox{box%cmd}#*d
 # variables
 \belowcaptionskip#*
 \binoppenalty#*
@@ -146,7 +154,6 @@
 \defaultscriptratio#*
 \defaultscriptscriptratio#*
 \doublerulesep#*
-\emergencystretch#*
 \footnotesep#*
 \footskip#*
 \intextsep#*
@@ -204,7 +211,6 @@
 \height#*L
 \partopsep#*L
 \parsep#*L
-\lineskiplimits#*
 \footheight#*L
 # pdftex specials
 \pdfoutput#*
@@ -222,3 +228,9 @@
 \pdfthreadmargin#*
 \pdfminorversion#*
 \numberline#* 
+
+# miscellany
+\allocationnumber
+\fill
+\tracingfonts
+\unitlength

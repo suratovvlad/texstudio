@@ -47,7 +47,7 @@ private:
 class PDFQueue : public QObject
 {
 public:
-	explicit PDFQueue(QObject *parent = 0);
+	explicit PDFQueue(QObject *parent = nullptr);
 
 	inline void ref()
 	{
@@ -56,7 +56,7 @@ public:
 	void deref();
 	int getRef()
 	{
-		return m_ref.fetchAndAddRelaxed(0);;
+		return m_ref.fetchAndAddRelaxed(0);
 	}
 
 	QQueue<RenderCommand> mCommands;
@@ -73,11 +73,7 @@ public:
 	QByteArray documentData;
 
 private:
-#if QT_VERSION < 0x040400
-	QBasicAtomic m_ref;
-#else
 	QAtomicInt m_ref;
-#endif
 };
 
 class SetImageForwarder : public QObject

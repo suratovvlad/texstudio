@@ -19,13 +19,15 @@
 #include "qformat.h"
 #include "buildmanager.h"
 
+
+
 //TODO: perhaps move each class in its own file?
 class ShortcutComboBox: public QComboBox
 {
 	Q_OBJECT
 
 public:
-	ShortcutComboBox(QWidget *parent = 0);
+    ShortcutComboBox(QWidget *parent = nullptr);
 protected:
 	virtual void keyPressEvent(QKeyEvent *e);
 	virtual void focusInEvent(QFocusEvent *e);
@@ -36,7 +38,7 @@ class ShortcutDelegate : public QItemDelegate
 	Q_OBJECT
 
 public:
-	ShortcutDelegate(QObject *parent = 0);
+    ShortcutDelegate(QObject *parent = nullptr);
 
 	QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
 	                      const QModelIndex &index) const;
@@ -63,7 +65,7 @@ public slots:
 class ComboBoxDelegate : public QItemDelegate
 {
 public:
-	ComboBoxDelegate(QObject *parent = 0);
+    ComboBoxDelegate(QObject *parent = nullptr);
 
 	QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
 	                      const QModelIndex &index) const;
@@ -85,7 +87,7 @@ class ConfigDialog : public QDialog
 	Q_OBJECT
 
 public:
-	ConfigDialog(QWidget *parent = 0);
+    ConfigDialog(QWidget *parent = nullptr);
 	~ConfigDialog();
 	Ui::ConfigDialog ui;
 	QRadioButton *checkboxInternalPDFViewer;
@@ -99,15 +101,12 @@ public:
 	QList<QMenu *> allMenus;
 	QList<QMenu *> standardToolbarMenus;
 
-	QStringList *environModes;
-
 	void setBuildManger(BuildManager *buildManager) { mBuildManager = buildManager; }
 
 	bool riddled;
 public slots:
 	void changePage(QListWidgetItem *current, QListWidgetItem *previous);
 private slots:
-	QListWidgetItem *createIcon(const QString &caption, const QIcon &icon, bool advancedOption = false);
 	void comboBoxWithPathEdited(const QString &newText);
 	void comboBoxWithPathHighlighted(const QString &newText);
 	void browseThesaurus();
@@ -140,16 +139,19 @@ private slots:
 	void updateCheckNow();
 	void refreshLastUpdateTime();
 
-	void populateComboBoxFont(bool onlyMonospaced);
-
-	void custEnvAddLine();
-	void custEnvRemoveLine();
-	void custSyntaxAddLine();
-	void custSyntaxRemoveLine();
-
 	void revertClicked();
 
+	void populateComboBoxFont(bool onlyMonospaced);
 private:
+#ifdef INTERNAL_TERMINAL
+	void populateTerminalColorSchemes();
+	void populateTerminalComboBoxFont(bool onlyMonospaced);
+#endif
+
+private:
+	enum ContentsType {CONTENTS_BASIC, CONTENTS_ADVANCED, CONTENTS_DISABLED};
+
+	QListWidgetItem *createIcon(const QString &caption, const QIcon &icon, ContentsType contentsType = CONTENTS_BASIC);
 	bool askRiddle();
 	void hideShowAdvancedOptions(QWidget *w, bool on);
 	static bool metaFilterRecurseWidget(const QString &filter, QWidget *widget);

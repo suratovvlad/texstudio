@@ -2,7 +2,7 @@
 #include "latexdocument.h"
 
 
-StructureEntry::StructureEntry(LatexDocument *doc, Type newType): type(newType), level(0), valid(false), parent(nullptr), document(doc), columnNumber(0), parentRow(-1), lineHandle(nullptr), lineNumber(-1), m_contexts(nullptr)
+StructureEntry::StructureEntry(LatexDocument *doc, Type newType): type(newType), level(0), valid(false), parent(nullptr), document(doc), columnNumber(0), parentRow(-1), lineHandle(nullptr), lineNumber(-1), m_contexts(Unknown)
 {
 #ifndef QT_NO_DEBUG
 	Q_ASSERT(document);
@@ -149,7 +149,7 @@ LatexDocumentsModel::LatexDocumentsModel(LatexDocuments &docs): documents(docs),
 Qt::ItemFlags LatexDocumentsModel::flags ( const QModelIndex &index ) const
 {
 	if (index.isValid()) return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-    else return nullptr;
+    else return Qt::NoItemFlags;
 }
 
 QVariant LatexDocumentsModel::data ( const QModelIndex &index, int role) const
@@ -185,12 +185,10 @@ QVariant LatexDocumentsModel::data ( const QModelIndex &index, int role) const
 			return QVariant(QDir::toNativeSeparators(entry->document->getFileName()));
 		}
 		if (entry->type == StructureEntry::SE_SECTION) {
-#if QT_VERSION < 0x050000
-			QString htmlTitle = entry->title;
-#else
+
 			QString htmlTitle = entry->title.toHtmlEscaped();
-#endif
-			htmlTitle.replace(' ', "&nbsp;");  // repleacement: prevent line break
+
+            htmlTitle.replace(' ', "&nbsp;");  // repleacement: prevent line break
 			QString tooltip("<html><b>" + htmlTitle + "</b>");
 			if (entry->getCachedLineNumber() > -1)
 				tooltip.append("<br><i>" + tr("Line") + QString("</i>: %1").arg(entry->getRealLineNumber() + 1));
@@ -210,12 +208,10 @@ QVariant LatexDocumentsModel::data ( const QModelIndex &index, int role) const
 			return QVariant(tooltip);
 		}
 		if (entry->type == StructureEntry::SE_INCLUDE) {
-#if QT_VERSION < 0x050000
-			QString htmlTitle = entry->title;
-#else
+
 			QString htmlTitle = entry->title.toHtmlEscaped();
-#endif
-			htmlTitle.replace(' ', "&nbsp;").replace('-', "&#8209;");  // repleacement: prevent line break
+
+            htmlTitle.replace(' ', "&nbsp;").replace('-', "&#8209;");  // repleacement: prevent line break
 			QString tooltip("<html><b>" + htmlTitle + "</b>");
 			if (entry->getCachedLineNumber() > -1)
 				tooltip.append("<br><i>" + tr("Line") + QString("</i>: %1").arg(entry->getRealLineNumber() + 1));
@@ -286,7 +282,7 @@ QVariant LatexDocumentsModel::data ( const QModelIndex &index, int role) const
 
 QVariant LatexDocumentsModel::headerData ( int section, Qt::Orientation orientation, int role ) const
 {
-	Q_UNUSED(orientation);
+	Q_UNUSED(orientation)
 	if (section != 0) return QVariant();
 	if (role != Qt::DisplayRole) return QVariant();
 	return QVariant("Structure");
@@ -304,18 +300,26 @@ int LatexDocumentsModel::rowCount ( const QModelIndex &parent ) const
 
 int LatexDocumentsModel::columnCount ( const QModelIndex &parent ) const
 {
-	Q_UNUSED(parent);
+	Q_UNUSED(parent)
 	return 1;
 }
 
 QModelIndex LatexDocumentsModel::index ( int row, int column, const QModelIndex &parent ) const
 {
 	if (column != 0) return QModelIndex(); //one column
-	if (row < 0) return QModelIndex(); //shouldn't happen
+	if (row < 0) {
+		return QModelIndex(); //shouldn't happen
+	}
 	if (parent.isValid()) {
-        const StructureEntry *entry = static_cast<StructureEntry *>(parent.internalPointer());
-		if (!entry) return QModelIndex(); //should never happen
-		if (row >= entry->children.size()) return QModelIndex(); //shouldn't happen in a correct view
+		const StructureEntry *entry = static_cast<StructureEntry *>(parent.internalPointer());
+		if (!entry) {
+			return QModelIndex(); //should never happen
+		}
+		if (row >= entry->children.size()) {
+			// QAbstractItemView::rowsAboutToBeRemoved can call us with row == entry->children.size()
+			// if there are no visible and enabled rows after the last removed row
+			return QModelIndex();
+		}
 		return createIndex(row, column, entry->children.at(row));
 	} else {
 		if (row >= documents.documents.size()) return QModelIndex();
@@ -332,19 +336,25 @@ QModelIndex LatexDocumentsModel::index ( int row, int column, const QModelIndex 
 
 QModelIndex LatexDocumentsModel::index ( StructureEntry *entry ) const
 {
-	if (!entry) return QModelIndex();
-    if (entry->parent == nullptr && entry->type == StructureEntry::SE_DOCUMENT_ROOT) {
+	if (!entry) {
+		return QModelIndex();
+	}
+	if (entry->parent == nullptr && entry->type == StructureEntry::SE_DOCUMENT_ROOT) {
 		int row = documents.documents.indexOf(entry->document);
 		if (m_singleMode) {
 			row = 0;
 		}
 		if (row < 0) return QModelIndex();
 		return createIndex(row, 0, entry);
-    } else if (entry->parent != nullptr && entry->type != StructureEntry::SE_DOCUMENT_ROOT) {
+	} else if (entry->parent != nullptr && entry->type != StructureEntry::SE_DOCUMENT_ROOT) {
 		int row = entry->getRealParentRow();
-		if (row < 0) return QModelIndex(); //shouldn't happen
+		if (row < 0) {
+			return QModelIndex(); //shouldn't happen
+		}
 		return createIndex(row, 0, entry);
-	} else return QModelIndex(); //shouldn't happen
+	} else {
+		return QModelIndex(); //shouldn't happen
+	}
 }
 
 QModelIndex LatexDocumentsModel::parent ( const QModelIndex &index ) const
@@ -446,18 +456,11 @@ void LatexDocumentsModel::setHighlightedEntry(StructureEntry *entry)
 
 void LatexDocumentsModel::resetAll()
 {
-#if QT_VERSION<0x050000
-#else
 	beginResetModel();
-#endif
 
 	mHighlightIndex = QModelIndex();
 
-#if QT_VERSION<0x050000
-	reset();
-#else
 	endResetModel();
-#endif
 }
 
 void LatexDocumentsModel::resetHighlight()
@@ -467,7 +470,7 @@ void LatexDocumentsModel::resetHighlight()
 
 void LatexDocumentsModel::structureUpdated(LatexDocument *document, StructureEntry *highlight)
 {
-	Q_UNUSED(document);
+	Q_UNUSED(document)
     if (highlight) {
         mHighlightIndex = index(highlight);
     } else {
@@ -477,7 +480,7 @@ void LatexDocumentsModel::structureUpdated(LatexDocument *document, StructureEnt
 }
 void LatexDocumentsModel::structureLost(LatexDocument *document)
 {
-	Q_UNUSED(document);
+	Q_UNUSED(document)
 	resetAll();
 }
 

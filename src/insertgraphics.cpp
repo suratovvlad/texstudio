@@ -281,7 +281,7 @@ bool InsertGraphics::parseCode(const QString &code, InsertGraphicsConfig &conf)
 				return false;
 			}
 		} else if (lr.word == "\\end") {
-			;
+			// nothing to do
 		} else if (lr.word == "\\caption") {
 			if (args.at(0).at(0) == '[') {
 				conf.shortCaption = LatexParser::removeOptionBrackets((args.at(0)));
@@ -370,7 +370,7 @@ QString InsertGraphics::getCaptionLabelString(const InsertGraphicsConfig &conf) 
 	return s;
 }
 
-QString InsertGraphics::getCode() const
+QString InsertGraphics::getLatexText() const
 {
 	QString insert;
 	InsertGraphicsConfig conf = getConfig();
@@ -418,7 +418,7 @@ void InsertGraphics::chooseFile()
 	QStringList exts;
 	foreach (const QString &fmt, m_imageFormats) {
 		exts.append("*." + fmt);
-	};
+	}
 	QString filter = tr("Images") + " (" + exts.join(" ") + ")";
 	filter += QString(";;PGF/TikZ (*.pgf *.tex)");
 	fn = FileDialog::getOpenFileName(this, tr("Select a File", "Wizard"), texFile.absolutePath(), filter);
@@ -527,7 +527,7 @@ void InsertGraphicsConfig::readSettings(QSettings &settings)
 {
 	settings.beginGroup("InsertGraphics");
 
-	includeOptions = settings.value("/includeOption", "width=0.7\\linewidth").toString();
+	includeOptions = settings.value("/includeOptions", "width=0.7\\linewidth").toString();
 	center = settings.value("/center", true).toBool();
 	useFigure = settings.value("/useFigure", true).toBool();
 	captionBelow = settings.value("/captionBelow", true).toBool();

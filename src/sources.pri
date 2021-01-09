@@ -18,16 +18,18 @@ HEADERS += \
     $$PWD/cursorhistory.h \
     $$PWD/cursorposition.h \
     $$PWD/dblclickmenubar.h \
-    $$PWD/debughelper.h \
     $$PWD/diff/diff_match_patch.h \
     $$PWD/diffoperations.h \
     $$PWD/directoryreader.h \
     $$PWD/editors.h \
     $$PWD/encoding.h \
     $$PWD/encodingdialog.h \
+    $$PWD/execprogram.h \
     $$PWD/filechooser.h \
     $$PWD/fileselector.h \
+    $$PWD/findindirs.h \
     $$PWD/flowlayout.h \
+    $$PWD/git.h \
     $$PWD/grammarcheck.h \
     $$PWD/grammarcheck_config.h \
     $$PWD/help.h \
@@ -105,7 +107,8 @@ HEADERS += \
     $$PWD/webpublishdialog_config.h \
     $$PWD/xmltagslistwidget.h \
     $$PWD/filedialog.h \
-    $$PWD/macrobrowserui.h
+    $$PWD/macrobrowserui.h \
+    $$PWD/terminal_config.h
 
 SOURCES += \
     $$PWD/aboutdialog.cpp \
@@ -124,16 +127,18 @@ SOURCES += \
     $$PWD/cursorhistory.cpp \
     $$PWD/cursorposition.cpp \
     $$PWD/dblclickmenubar.cpp \
-    $$PWD/debughelper.cpp \
     $$PWD/diff/diff_match_patch.cpp \
     $$PWD/diffoperations.cpp \
     $$PWD/directoryreader.cpp \
     $$PWD/editors.cpp \
     $$PWD/encoding.cpp \
     $$PWD/encodingdialog.cpp \
+    $$PWD/execprogram.cpp \
     $$PWD/filechooser.cpp \
     $$PWD/fileselector.cpp \
+    $$PWD/findindirs.cpp \
     $$PWD/flowlayout.cpp \
+    $$PWD/git.cpp \
     $$PWD/grammarcheck.cpp \
     $$PWD/help.cpp \
     $$PWD/icondelegate.cpp \
@@ -230,6 +235,3 @@ FORMS += \
     $$PWD/usermenudialog.ui \
     $$PWD/userquickdialog.ui \
     $$PWD/webpublishdialog.ui
-
-win32: SOURCES += $$PWD/utilssystem_win.cpp
-else: SOURCES += $$PWD/utilssystem_unix.cpp

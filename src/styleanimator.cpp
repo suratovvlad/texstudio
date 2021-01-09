@@ -31,7 +31,6 @@
 
 #include <QStyleOption>
 
-#if QT_VERSION >= 0x040500
 Animation * StyleAnimator::widgetAnimation(const QWidget *widget) const
 {
     if (!widget)
@@ -45,8 +44,8 @@ Animation * StyleAnimator::widgetAnimation(const QWidget *widget) const
 
 void Animation::paint(QPainter *painter, const QStyleOption *option)
 {
-    Q_UNUSED(option);
-    Q_UNUSED(painter);
+    Q_UNUSED(option)
+    Q_UNUSED(painter)
 }
 
 void Animation::drawBlendedImage(QPainter *painter, QRect rect, float alpha)
@@ -153,4 +152,3 @@ void StyleAnimator::startAnimation(Animation *t)
         animationTimer.start(35, this);
     }
 }
-#endif

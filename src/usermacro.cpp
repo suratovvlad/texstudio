@@ -44,7 +44,7 @@ void Macro::init(const QString &nname, Macro::Type ntype, const QString &ntag, c
 	trigger = ntrigger;
 	triggerLookBehind = false;
 	QString realtrigger = trigger;
-    triggers = nullptr;
+    triggers = SpecialTriggers();
 	if (realtrigger.trimmed().startsWith("?")) {
 		QStringList sl = realtrigger.split("|");
 		realtrigger.clear();
@@ -246,7 +246,6 @@ bool Macro::save(const QString &fileName) const {
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
 
-#if QT_VERSION >= 0x050000
     QJsonObject dd;
     dd.insert("formatVersion",1);
     dd.insert("name",name);
@@ -260,43 +259,6 @@ bool Macro::save(const QString &fileName) const {
     QJsonDocument jsonDoc(dd);
     file.write(jsonDoc.toJson());
     return true;
-#else
-    QTextStream out(&file);
-    out.setCodec("UTF-8");
-
-    QString tag= typedTag();
-
-    out << "{\n" ;
-    out << "\"name\" : \"" << name << "\" ,\n";
-    out << "\"tag\" : [\n";
-    bool first=true;
-    foreach(QString line,tag.split("\n")){
-        if(!first){
-            out << ",\n";
-        }
-        first=false;
-        line.replace("\"","\\\"");
-        out << " \"" << line << "\"";
-    }
-    out << "\n ],\n";
-    out << "\"description\" : [\n";
-    first=true;
-    foreach(QString line,description.split("\n")){
-        if(!first){
-            out << ",\n";
-        }
-        first=false;
-        line.replace("\"","\\\"");
-        out << " \"" << line << "\"";
-    }
-    out << "\n ],\n";
-    out << "\"abbrev\" : \"" <<abbrev << "\" ,\n";
-    out << "\"trigger\" : \"" <<trigger << "\" ,\n";
-    out << "\"menu\" : \"" <<menu << "\" ,\n";
-    out << "\"shortcut\" : \"" <<m_shortcut << "\"\n";
-    out << "}\n" ;
-    return true; // successfully finished
-#endif
 }
 
 bool Macro::load(const QString &fileName){
@@ -312,8 +274,15 @@ bool Macro::load(const QString &fileName){
 bool Macro::loadFromText(const QString &text)
 {
     QHash<QString,QString>rawData;
-#if QT_VERSION >= 0x050000
-    QJsonDocument jsonDoc=QJsonDocument::fromJson(text.toUtf8());
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc=QJsonDocument::fromJson(text.toUtf8(),&parseError);
+    if(parseError.error!=QJsonParseError::NoError){
+        // parser could not read input
+        QMessageBox msgBox;
+        msgBox.setText(QObject::tr("Macro read-in failed\nError: ")+parseError.errorString());
+        msgBox.exec();
+        return false;
+    }
     QJsonObject dd=jsonDoc.object();
     if(dd.contains("formatVersion")){
         for(const QString& key : dd.keys()){
@@ -335,18 +304,11 @@ bool Macro::loadFromText(const QString &text)
             }
         }
     }else{
-        // read old format
-        bool success=minimalJsonParse(text, rawData);
-        if(!success){
-            return false;
-        }
-    }
-#else
-    bool success=minimalJsonParse(text, rawData);
-    if(!success){
+        //old format
+        qDebug()<<"support for old macro format was removed!";
         return false;
     }
-#endif
+
     // distrbute data on internal structure
     Macro::Type typ;
     QString typedTag=parseTypedTag(rawData.value("tag"),typ);

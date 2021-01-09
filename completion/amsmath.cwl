@@ -1,5 +1,10 @@
 # mode: amsmath.sty
 # dani/2006-02-19
+# muzimuzhi/1 Nov 2019
+
+#include:amsbsy
+#include:amsopn
+
 \allowdisplaybreaks
 \AmS
 \AmSfont
@@ -37,7 +42,6 @@
 \begin{xalignat*}#*
 \begin{xxalignat}#*
 \binom{above}{below}#m
-\bmod#m
 \boldsymbol{argument}#m
 \boxed{argument}
 \cfrac[align]{%<num%:translatable%>}{%<den%:translatable%>}#m
@@ -96,19 +100,18 @@
 \leftroot{argument}
 \lvert#m
 \lVert#m
-\medspace
-\mod#
+\mod#m
 \mspace{dimen}#m
-\negmedspace
-\negthickspace
-\negthinspace
 \nobreakdash
 \notag#m
+\numberwithin{env}{counter}
+\numberwithin[format]{env}{counter}
 \operatorname{name}
+\operatorname*{name}
 \operatornamewithlimits{name}
 \overleftrightarrow{argument}#m
 \overset{superscript}{argument}#m
-\pmod#m
+\overunderset{superscript}{subscript}{argument}#m
 \pod#m
 \raisetag{dimen}
 \rvert#m
@@ -120,10 +123,8 @@
 \tag{label}#m
 \tag*{label}#m
 \tbinom{above}{below}#m
-\text{word or phrase}
+\text{text}#m
 \tfrac{%<num%:translatabe%>}{%<den%:translatable%>}#m
-\thickspace
-\thinspace
 \underleftarrow{argument}#m
 \underleftrightarrow{argument}#m
 \underrightarrow{argument}#m

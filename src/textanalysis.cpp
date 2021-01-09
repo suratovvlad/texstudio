@@ -67,7 +67,7 @@ QVariant TextAnalysisModel::headerData(int section, Qt::Orientation orientation,
 
 int TextAnalysisModel::columnCount(const QModelIndex &parent) const
 {
-	Q_UNUSED(parent);
+	Q_UNUSED(parent)
 
 	return 3;
 }
@@ -80,7 +80,7 @@ void TextAnalysisModel::updateAll()
 		wordCount += words[i].count;
 		characterInWords += words[i].count * words[i].word.size();
 	}
-	qSort(words);
+    std::sort(words.begin(),words.end());
 	if (words.size() > 0) relativeProzentMultipler = 100.0 / words[0].count;
 	else relativeProzentMultipler = 0;
 	//emit dataChanged?

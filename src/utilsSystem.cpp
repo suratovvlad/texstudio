@@ -1,5 +1,6 @@
 #include "utilsSystem.h"
 #include "unixutils.h"
+#include "smallUsefulFunctions.h"
 
 #ifdef Q_OS_MAC
 #include <CoreFoundation/CFURL.h>
@@ -28,18 +29,14 @@ bool getDiskFreeSpace(const QString &path, quint64 &freeBytes)
 	freeBytes = freeBytesToCaller.QuadPart;
 	return true;
 #else
-	Q_UNUSED(path);
-	Q_UNUSED(freeBytes);
+	Q_UNUSED(path)
+	Q_UNUSED(freeBytes)
 	return false;
 #endif
 }
 
 QLocale::Language getKeyboardLanguage() {
-#if QT_VERSION < 0x050000
-	return QApplication::keyboardInputLocale().language();
-#else
 	return QGuiApplication::inputMethod()->locale().language();
-#endif
 }
 
 /*!
@@ -80,6 +77,7 @@ QKeySequence filterLocaleShortcut(QKeySequence ks)
 		} else if (ks.matches(QKeySequence("Ctrl+Alt+L"))) {
 			return QKeySequence("Ctrl+Alt+Shift+L");
 		}
+		break;
 	case QLocale::Croatian:
 		if (ks.matches(QKeySequence("Ctrl+Alt+F"))) {
 			return QKeySequence("Ctrl+Alt+Shift+F");
@@ -136,6 +134,7 @@ QStringList findResourceFiles(const QString &dirName, const QString &filter, QSt
 	if (!dn.startsWith('/') && !dn.startsWith(QDir::separator())) dn = "/" + dn; //add / at beginning
 	searchFiles << ":" + dn; //resource fall back
 	searchFiles.append(additionalPreferredPaths);
+    searchFiles << QCoreApplication::applicationDirPath() + "/../share/texstudio"; //appimage relative path
 	searchFiles << QCoreApplication::applicationDirPath() + dn; //windows new
     searchFiles << QCoreApplication::applicationDirPath() + "/"; //windows old
     searchFiles << QCoreApplication::applicationDirPath() + "/dictionaries/"; //windows new
@@ -192,6 +191,7 @@ QString findResourceFile(const QString &fileName, bool allowOverride, QStringLis
 		else searchFiles << s + "/";
 #if defined Q_WS_X11 || defined Q_OS_LINUX || defined Q_OS_UNIX
 	searchFiles << PREFIX"/share/texstudio/"; //X_11
+    searchFiles << QCoreApplication::applicationDirPath() + "/../share/texstudio/"; // relative path for appimage
 	if (fileName.endsWith(".html")) searchFiles << PREFIX"/share/doc/texstudio/html/"; //for Debian package
 #endif
 #ifdef Q_OS_MAC
@@ -226,26 +226,57 @@ QString findResourceFile(const QString &fileName, bool allowOverride, QStringLis
 	return "";
 }
 
-bool modernStyle;
+/*!
+ * \brief put quotes araound strin when necessary
+ *
+ * Enclose the given string with quotes if it contains spaces.
+ * This function is useful
+ * \param s input string
+ * \return string with quotes (if s contains spaces)
+ */
+QString quoteSpaces(const QString &s)
+{
+    if (!s.contains(' ')) return s;
+    return '"' + s + '"';
+}
+
+
+int modernStyle;
+bool darkMode;
 bool useSystemTheme;
+
+/*!
+ * \brief return icon according to settings
+ *
+ * The icon is looked up in txs resources. It prefers svg over png.
+ * In case of active dark mode, icons with name icon_dm is used (if present).
+ * \param icon icon name
+ * \return found icon as file name
+ */
 QString getRealIconFile(const QString &icon)
 {
 	if (icon.isEmpty() || icon.startsWith(":/")) return icon;
-	QStringList iconNames = QStringList()
-	                        << ":/images-ng/" + icon + ".svg"
-	                        << ":/images-ng/" + icon + ".svgz"     //voruebergehend
-	                        << ":/symbols-ng/icons/" + icon + ".svg" //voruebergehend
-	                        << ":/symbols-ng/icons/" + icon + ".png"; //voruebergehend
-	if (modernStyle) {
-		iconNames << ":/images-ng/modern/" + icon + ".svg"
-		          << ":/images-ng/modern/" + icon + ".svgz"
-		          << ":/modern/images/modern/" + icon + ".png";
-	} else {
-		iconNames << ":/images-ng/classic/" + icon + ".svg"
-		          << ":/images-ng/classic/" + icon + ".svgz"
-		          << ":/classic/images/classic/" + icon + ".png";
-	}
-	iconNames << ":/images/" + icon + ".png";
+    QStringList suffixList{""};
+    if(darkMode)
+        suffixList=QStringList{"_dm",""};
+    QStringList iconNames = QStringList();
+    for(const QString& suffix : suffixList){
+        iconNames
+                << ":/images-ng/" + icon + suffix + ".svg"
+                << ":/images-ng/" + icon + suffix + ".svgz" ;
+        if (modernStyle) {
+            iconNames << ":/images-ng/modern/" + icon + suffix + ".svg"
+                      << ":/images-ng/modern/" + icon + suffix + ".svgz"
+                      << ":/modern/images/modern/" + icon + suffix + ".png";
+        } else {
+            iconNames << ":/images-ng/classic/" + icon + suffix + ".svg"
+                      << ":/images-ng/classic/" + icon + suffix + ".svgz"
+                      << ":/classic/images/classic/" + icon + suffix + ".png";
+        }
+        iconNames << ":/symbols-ng/icons/" + icon + suffix + ".svg" ;//voruebergehend
+        iconNames << ":/symbols-ng/icons/" + icon + suffix + ".png"; //voruebergehend
+        iconNames << ":/images/" + icon + ".png";
+    }
 
 	foreach (const QString &name, iconNames) {
 		if (QFileInfo(name).exists())
@@ -255,18 +286,23 @@ QString getRealIconFile(const QString &icon)
 	return icon;
 }
 
+/*!
+ * \brief search icon
+ *
+ * Looks up icon by name. If settings allow, tries to use system icons, otherwise tries to find in txs resources.
+ * \param icon icon name
+ * \return icon
+ */
 QIcon getRealIcon(const QString &icon)
 {
 	if (icon.isEmpty()) return QIcon();
 	if (icon.startsWith(":/")) return QIcon(icon);
-#if QT_VERSION >= 0x040600
 	if (useSystemTheme && QIcon::hasThemeIcon(icon)) return QIcon::fromTheme(icon);
-#endif
 	//return QIcon(getRealIconFile(icon.contains(".")?icon:(icon+".png")));
 	QString name = getRealIconFile(icon);
 	QIcon ic = QIcon(name);
 	//if(ic.isNull()){
-#if (QT_VERSION >= 0x050000)&&(defined(Q_OS_OSX))
+#if (defined(Q_OS_OSX))
 	QPixmap pm(32, 32);
 	pm.load(name);
 	ic = QIcon(pm);
@@ -274,9 +310,18 @@ QIcon getRealIcon(const QString &icon)
 	return ic;
 }
 
-QIcon getRealIconCached(const QString &icon)
+/*!
+ * \brief search icon
+ *
+ * Looks up icon by name. If settings allow, tries to use system icons, otherwise tries to find in txs resources.
+ * The icon is cached for better reactivity.
+ * \param icon icon name
+ * \param forceReload ignore cache and reload icon from database. This is necessary if light-/dark-mode is changed.
+ * \return icon
+ */
+QIcon getRealIconCached(const QString &icon, bool forceReload)
 {
-	if (iconCache.contains(icon)) {
+    if (iconCache.contains(icon) && !forceReload) {
 		return *iconCache[icon];
 	}
 	if (icon.isEmpty()) return QIcon();
@@ -286,32 +331,38 @@ QIcon getRealIconCached(const QString &icon)
 		iconCache.insert(icon, icn);
 		return *icn;
 	}
-#if QT_VERSION >= 0x040600
 	if (useSystemTheme && QIcon::hasThemeIcon(icon)) {
 		QIcon *icn = new QIcon(QIcon::fromTheme(icon));
 		iconCache.insert(icon, icn);
 		return *icn;
 	}
 
-#endif
 	//return QIcon(getRealIconFile(icon.contains(".")?icon:(icon+".png")));
 	QIcon *icn = new QIcon(getRealIconFile(icon));
 	iconCache.insert(icon, icn);
 	return *icn;
 }
 
+/*!
+ * \brief Tries to determine if the system uses dark mode
+ *
+ * This function tries to determine if a system uses "dark mode" by looking up general text color and converting it into gray-scale value.
+ * A value above 200 (scale is 0 .. 255 ) is considered as light text color on probably dark background, hence a dark mode is detected.
+ * This approach is independent on specific on different systems.
+ * \return true -> uses dark mode
+ */
+bool systemUsesDarkMode(const QPalette &pal)
+{
+    QColor clr=pal.color(QPalette::Text);
+    return qGray(clr.rgb())>200;
+}
+
 bool isFileRealWritable(const QString &filename)
 {
-#ifdef Q_OS_WIN32
-#if QT_VERSION >= 0x040700
-	//bug in 4.7 still present in 4.8.0
-	return (QFileInfo(filename).exists() && QFileInfo(filename).isWritable()) ||
-	       (!QFileInfo(filename).exists() && QFileInfo(QFileInfo(filename).absolutePath()).isWritable());
-#else
-	//thanks to Vistas virtual folders trying to open an unaccessable file can create it somewhere else
-	return QFileInfo(filename).isWritable();
-#endif
-#else
+    if(QFileInfo(filename).exists()){
+        return QFileInfo(filename).isWritable();
+    }
+
 	QFile fi(filename);
 	bool result = false;
 	if (fi.exists()) result = fi.open(QIODevice::ReadWrite);
@@ -320,13 +371,25 @@ bool isFileRealWritable(const QString &filename)
 		fi.remove();
 	}
 	return result;
-#endif
 }
-
+/*!
+ * \brief checks if file exists and is writeable
+ *
+ * Convenience function
+ * \param filename
+ * \return
+ */
 bool isExistingFileRealWritable(const QString &filename)
 {
 	return QFileInfo(filename).exists() && isFileRealWritable(filename);
 }
+
+/*!
+ * \brief make sure that the dirPath is terminated with a separator (/ or \)
+ *
+ * \param dirPath
+ * \return dirPath with trailing separator
+ */
 
 QString ensureTrailingDirSeparator(const QString &dirPath)
 {
@@ -337,12 +400,23 @@ QString ensureTrailingDirSeparator(const QString &dirPath)
 #endif
 	return dirPath + "/";
 }
-
+/*!
+ * \brief join dirname and filename with apropriate separator
+ * \param dirname
+ * \param filename
+ * \return
+ */
 QString joinPath(const QString &dirname, const QString &filename)
 {
 	return ensureTrailingDirSeparator(dirname) + filename;
 }
-
+/*!
+ * \brief join dirname, dirname2 and filename with apropriate separator
+ * \param dirname
+ * \param dirname2
+ * \param filename
+ * \return
+ */
 QString joinPath(const QString &dirname, const QString &dirname2, const QString &filename)
 {
 	return ensureTrailingDirSeparator(dirname) + ensureTrailingDirSeparator(dirname2) + filename;
@@ -352,9 +426,9 @@ QString joinPath(const QString &dirname, const QString &dirname2, const QString 
 /// Does nothing on Windows.
 QFileInfo getNonSymbolicFileInfo(const QFileInfo& info)
 {
-	const size_t MAX_DIR_DEPTH=32; //< Do not seek for symbolic links deeper than MAX_DIR_DEPTH.
-									// For performance issues and if the root directory was not catched (infinite loop).
 #ifdef Q_OS_UNIX
+	const size_t MAX_DIR_DEPTH=32; //< Do not seek for symbolic links deeper than MAX_DIR_DEPTH.
+	                               // For performance issues and if the root directory was not catched (infinite loop).
 	// Static array might be also used to prevent heap allocation for a small amont of data. QFileInfo is shared, so the size of the array is size_of(void*)*MAX_DIR_DEPTH
 	//QFileInfo stack[MAX_DIR_DEPTH];
 	QStack<QFileInfo> stack;
@@ -393,7 +467,13 @@ QFileInfo getNonSymbolicFileInfo(const QFileInfo& info)
 		return info;
 #endif
 }
-
+/*!
+ * \brief replace file extension
+ * \param filename
+ * \param newExtension
+ * \param appendIfNoExt
+ * \return
+ */
 QString replaceFileExtension(const QString &filename, const QString &newExtension, bool appendIfNoExt)
 {
 	QFileInfo fi(filename);
@@ -504,15 +584,20 @@ QString getNonextistentFilename(const QString &guess, const QString &fallback)
 	}
 	return fallback;
 }
-
+/*!
+ * \brief get environment path
+ *
+ * Get the content of PATH environment variable.
+ * On OSX starts a bash to get a more complete picture as programs get started without access to the bash PATH.
+ * \return path
+ */
 QString getEnvironmentPath()
 {
 	static QString path;
 	if (path.isNull()) {
 #ifdef Q_OS_MAC
-#if (QT_VERSION >= 0x040600)
 		QProcess *myProcess = new QProcess();
-		myProcess->start("bash -l -c \"echo -n $PATH\"");  // -n ensures there is no newline at the end
+        myProcess->start("bash -l -c \"echo -n $PATH\"");  // -n ensures there is no newline at the end
 		myProcess->waitForFinished(3000);
 		if (myProcess->exitStatus() == QProcess::NormalExit) {
 			QByteArray res = myProcess->readAllStandardOutput();
@@ -521,19 +606,26 @@ QString getEnvironmentPath()
 			path = "";
 		}
 		delete myProcess;
-#endif
 #else
 		path = QProcessEnvironment::systemEnvironment().value("PATH");
 #endif
 	}
 	return path;
 }
-
+/*!
+ * \brief get environment path list
+ * Same as getEnvironmentPath(), but splits the sresult into a stringlist.
+ * \return
+ */
 QStringList getEnvironmentPathList()
 {
 	return getEnvironmentPath().split(getPathListSeparator());
 }
-
+/*!
+ * \brief update path settings for a process
+ * \param proc process
+ * \param additionalPaths
+ */
 void updatePathSettings(QProcess *proc, QString additionalPaths)
 {
 	QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -581,13 +673,24 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn)
 	const QString folder = fileInfo.isDir() ? fileInfo.absoluteFilePath() : fileInfo.filePath();
 	QSettings dummySettings;
 	const QString app = UnixUtils::fileBrowser(&dummySettings);
-	QProcess browserProc;
-	const QString browserArgs = UnixUtils::substituteFileBrowserParameters(app, folder);
-	bool success = browserProc.startDetached(browserArgs);
+    QProcess browserProc;
+    const QString browserArg = UnixUtils::substituteFileBrowserParameters(app, folder);
+#if QT_VERSION>=QT_VERSION_CHECK(5,15,0)
+    QStringList args=QProcess::splitCommand(browserArg);
+#else
+    QStringList args=browserArg.split(" "); // this assumes that the command is not using quotes with spaces in the command path, better solution from qt5.15 ...
+#endif
+    if(args.isEmpty())
+        return;
+    QString cmd=args.takeFirst();
+    for(QString &elem:args){
+        elem=removeQuote(elem);
+    }
+    bool success = browserProc.startDetached(cmd,args);
 	const QString error = QString::fromLocal8Bit(browserProc.readAllStandardError());
 	success = success && error.isEmpty();
 	if (!success)
-		QMessageBox::critical(parent, app, error);
+        QMessageBox::critical(parent, app, error);
 #endif
 }
 
@@ -601,7 +704,11 @@ QString msgGraphicalShellAction()
 	return QApplication::translate("Texstudio", "Show Containing Folder");
 #endif
 }
-
+/*!
+ * \brief determine which x11 environment is used.
+ * This is probably obsolete.
+ * \return 0 : no kde ; 3: kde ; 4 : kde4 ; 5 : kde5
+ */
 int x11desktop_env()
 {
 	// 0 : no kde ; 3: kde ; 4 : kde4 ; 5 : kde5 ;
@@ -648,50 +755,13 @@ bool hasAtLeastQt(int major, int minor)
 	return (ma > major) || (ma == major && mi >= minor);
 }
 
-// convenience function for unique connections independent of the Qt version
+/// convenience function for unique connections independent of the Qt version
 bool connectUnique(const QObject *sender, const char *signal, const QObject *receiver, const char *method)
 {
-#if QT_VERSION >= 0x040600
 	return QObject::connect(sender, signal, receiver, method, Qt::UniqueConnection);
-#else
-	disconnect(sender, signal, receiver, method);
-	return connect(sender, signal, receiver, method);
-#endif
 }
 
-// compatibility function for missing QProcessEnvironment::keys() in Qt < 4.8
-QStringList envKeys(const QProcessEnvironment &env)
-{
-#if QT_VERSION >= 0x040800
-	return env.keys();
-#else
-	QStringList keys;
-	foreach (const QString &s, env.toStringList()) {
-		keys.append(s.left(s.indexOf('=')));
-	}
-	return keys;
-#endif
-}
-
-// run the command in a separate process, wait and return the result
-// use for internal queries that should be silent. Not to be mixed up with BuildManager::runCommand
-QString execCommand(const QString &cmd, QString additionalPaths)
-{
-	if (cmd.isEmpty()) return QString();
-    QProcess myProc(nullptr);
-    if(!additionalPaths.isEmpty()){
-        updatePathSettings(&myProc,additionalPaths);
-    }
-	myProc.start(cmd);
-	myProc.waitForFinished();
-	QString result;
-	if (myProc.exitCode() == 0) {
-		result = myProc.readAllStandardOutput();
-	}
-	return result.trimmed();
-}
-
-void ThreadBreaker::sleep(int s)
+void ThreadBreaker::sleep(unsigned long s)
 {
 	QThread::sleep(s);
 }
@@ -715,4 +785,15 @@ void SafeThread::wait(unsigned long time)
 {
 	if (crashed) return;
 	QThread::wait(time);
+}
+
+
+QSet<QString> convertStringListtoSet(const QStringList &list)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    return QSet<QString>(list.begin(),list.end());
+#else
+    return QSet<QString>::fromList(list);
+#endif
+
 }

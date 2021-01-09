@@ -31,16 +31,11 @@
 #include <QPinchGesture>
 #include <QTapGesture>
 #include <QProgressDialog>
+#include <QPainterPath>
 
-//#include "FindDialog.h"
-#if QT_VERSION < 0x050000
-#include "poppler-qt4.h"
-#else
 #include "poppler-qt5.h"
-#endif
 #include "qsynctex.h"
 
-//#include "ui_PDFDocument.h"
 #include "pdfrendermanager.h"
 
 
@@ -61,6 +56,7 @@ class PDFAnnotations;
 class PDFAnnotation;
 class PDFAnnotationTableView;
 class MessageFrame;
+
 
 class PDFMagnifier : public QLabel
 {
@@ -129,9 +125,9 @@ typedef enum {
 
 struct PDFPageHistoryItem{
 	int page;
-	float x, y;
+    double x, y;
 	PDFPageHistoryItem():page(0),x(0),y(0){}
-	PDFPageHistoryItem(int page, float x, float y):page(page),x(x),y(y){}
+    PDFPageHistoryItem(int page, double x, double y):page(page),x(x),y(y){}
 };
 
 class PDFScrollArea;
@@ -155,7 +151,7 @@ public:
     Q_INVOKABLE void setHighlightPath(const int pageIndex, const QPainterPath &path, const bool dontRemove=false);
 	Q_INVOKABLE int getHighlightPage() const;
 	Q_INVOKABLE void goToDestination(const QString &destName);
-	Q_INVOKABLE void goToPageRelativePosition(int page, float xinpage, float yinpage);
+    Q_INVOKABLE void goToPageRelativePosition(int page, double xinpage, double yinpage);
 	Q_INVOKABLE int getPageIndex();
     Q_INVOKABLE void reloadPage(bool sync = true);
 	void updateStatusBar();
@@ -285,7 +281,7 @@ private:
 	autoScaleOption scaleOption;
 
 	bool inhibitNextContextMenuEvent;
-	float summedWheelDegrees;
+    double summedWheelDegrees;
 
 	int docPages;
 	qreal			saveScaleFactor;
@@ -335,7 +331,7 @@ private:
 class PDFSearchResult
 {
 public:
-	explicit PDFSearchResult(const PDFDocument *pdfdoc = NULL, int page = -1, QRectF rect = QRectF())
+    explicit PDFSearchResult(const PDFDocument *pdfdoc = nullptr, int page = -1, QRectF rect = QRectF())
 		: doc(pdfdoc), pageIdx(page), selRect(rect)
 	{ }
 

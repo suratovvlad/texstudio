@@ -43,13 +43,9 @@
 
 #include "libqmarkedscrollbar/src/markedscrollbar.h"
 
-#if QT_VERSION >= 0x040600
 #include <QPropertyAnimation>
-#endif
 
-#if QT_VERSION >= 0x050100
 #include <QSaveFile>
-#endif
 
 #ifdef Q_OS_MAC
 #include <QSysInfo>
@@ -769,6 +765,7 @@ bool QEditor::flag(EditFlag f) const
 */
 void QEditor::setFlag(EditFlag f, bool b)
 {
+	bool changed = flag(f) != b;
 	if ( b )
 	{
 		m_state |= f;
@@ -776,7 +773,7 @@ void QEditor::setFlag(EditFlag f, bool b)
 		m_state &= ~f;
 	}
 
-	if ( f == LineWrap || f == HardLineWrap || f==LineWidthConstraint)
+    if ( f == LineWrap || f == HardLineWrap || f==LineWidthConstraint)
 	{
 		m_doc->impl()->setHardLineWrap(flag(HardLineWrap));
 		m_doc->impl()->setLineWidthConstraint(flag(LineWidthConstraint));
@@ -801,6 +798,8 @@ void QEditor::setFlag(EditFlag f, bool b)
 		// TODO : only update cpos if cursor used to be visible?
 		ensureCursorVisible();
 	}
+	if (changed && f == VerticalOverScroll)
+		setVerticalScrollBarMaximum();
 
 }
 
@@ -1000,7 +999,6 @@ bool QEditor::saveCopy(const QString& filename){
 	QString txt = m_doc->text(flag(RemoveTrailing), flag(PreserveTrailingIndent));
 	QByteArray data =  m_doc->codec() ? m_doc->codec()->fromUnicode(txt) : txt.toLocal8Bit();
 
-#if QT_VERSION >= 0x050100
 	if (m_useQSaveFile) {
 		QSaveFile file(filename);
 		if (file.open(QIODevice::WriteOnly)) {
@@ -1022,9 +1020,6 @@ bool QEditor::saveCopy(const QString& filename){
 	} else {
 		return writeToFile(filename, data);
 	}
-#else
-	return writeToFile(filename, data);
-#endif
 }
 
 /*!
@@ -1260,18 +1255,16 @@ void QEditor::fileChanged(const QString& file)
 		{
 			watcher()->removeWatch(QString(), this); //no duplicated questions
 			
-			int ret = QMessageBox::warning(this,
-			                               tr("File changed"),
-			                               tr(
-			                                 "%1\nhas been modified by another application.\n\n"
-			                                 "Undo/Redo stack would be discarded by the auto-reload.\n"
-			                                 "Do you wish to keep up to date by reloading the file?\n\n"
-			                                 "(Note: You can permanently enable silent reloading in the options.)"
-			                                 ).arg(fileName()),
-			                               QMessageBox::Yes
-			                               |
-			                               QMessageBox::No
-			                               );
+			int ret = QMessageBox::warning(
+			              this, tr("File changed"),
+			              tr("%1\n"
+			                 "was changed outside of TeXstudio. Reload from disk?\n\n"
+			                 "Notes:\n"
+			                 "- Reloading overwrites the editor content with the file from disk. This cannot be undone.\n"
+			                 "- You can permanently enable silent reloading in the options."
+			              ).arg(fileName()),
+			                QMessageBox::Yes | QMessageBox::No
+			              );
 
 			if ( ret == QMessageBox::No )
 				autoReload = false;
@@ -2909,6 +2902,12 @@ void QEditor::selectNothing(){
 	setCursor(cur);
 }
 
+void QEditor::selectExpand(QDocumentCursor::SelectionType selectionType){
+	m_cursor.expandSelect(selectionType);
+	for (int i=0;i<m_mirrors.size();i++)
+		m_mirrors[i].expandSelect(selectionType);
+}
+
 /*!
  * \brief searches for the next occurence of the text in the last selection and
  * selects this additionally. If there is no selection, the word or command under
@@ -2976,6 +2975,27 @@ void QEditor::selectExpandToNextLine()
  */
 void QEditor::selectAllOccurences()
 {
+	selectOccurence(false, false, true);
+}
+void QEditor::selectNextOccurence()
+{
+	selectOccurence(false, false, false);
+}
+void QEditor::selectPrevOccurence()
+{
+	selectOccurence(true, false, false);
+}
+void QEditor::selectNextOccurenceKeepMirror()
+{
+	selectOccurence(false, true, false);
+}
+void QEditor::selectPrevOccurenceKeepMirror()
+{
+	selectOccurence(true, true, false);
+}
+void QEditor::selectOccurence(bool backward, bool keepMirrors, bool all)
+{
+	//backward and all are exclusive
 	if (!m_cursor.hasSelection()) {
 		m_cursor.select(QDocumentCursor::WordOrCommandUnderCursor);
 	}
@@ -2995,6 +3015,9 @@ void QEditor::selectAllOccurences()
 	bool atBoundaries = (cStart.atLineStart() || !cStart.previousChar().isLetterOrNumber())
 	                 && (cEnd.atLineEnd() || !cEnd.nextChar().isLetterOrNumber());
 
+	QList<QDocumentCursor> cursors;
+	if (keepMirrors) cursors = this->cursors();
+
 	// TODO: this is a quick solution: using the search panel to select all matches
 	//       1. initialize the search with the required parameters
 	//       2. select all matches
@@ -3002,11 +3025,32 @@ void QEditor::selectAllOccurences()
 	// It would be better to be able to perform the search and select without interfering
 	// with the search panel UI.
 	find(text, false, false, isWord && atBoundaries, true);
-	selectAllMatches();
+	if (all) selectAllMatches();
+	else if (backward) {
+		findPrev();
+		findPrev();
+	} else {
+		//findNext(); find above already searched one
+	}
 	relayPanelCommand("Search", "closeElement", QList<QVariant>() << true);
+
+	if (keepMirrors) m_mirrors = cursors;
 
 	emitCursorPositionChanged();
 	viewport()->update();
+}
+
+void QEditor::setVerticalScrollBarMaximum()
+{
+	if (!m_doc) return;
+	const QSize viewportSize = viewport()->size();
+	int viewportHeight = viewportSize.height();
+	if (flag(VerticalOverScroll))
+		viewportHeight /= 2;
+	const int ls = m_doc->getLineSpacing();
+	QScrollBar* vsb = verticalScrollBar();
+	vsb->setMaximum(qMax(0, 1 + (m_doc->height() - viewportHeight) / ls));
+	vsb->setPageStep(viewportSize.height() / ls);
 }
 
 /*!
@@ -3025,8 +3069,8 @@ bool QEditor::event(QEvent *e)
 	// qcodedit ...
 	bool r = QAbstractScrollArea::event(e);
 
-	if ( (e->type() == QEvent::Resize || e->type() == QEvent::Show) && m_doc )
-		verticalScrollBar()->setMaximum(qMax(0, 1 + (m_doc->height() - viewport()->height()) / m_doc->getLineSpacing()));
+	if ( (e->type() == QEvent::Resize || e->type() == QEvent::Show) )
+		setVerticalScrollBarMaximum();
 
     if ( e->type() == QEvent::Resize && flag(LineWrap)  && m_doc)
 	{
@@ -3179,6 +3223,33 @@ void QEditor::timerEvent(QTimerEvent *e)
 		//startDrag();
 	} else if ( id == m_click.timerId() ) {
 		m_click.stop();
+	} else if ( id == m_autoScroll.timerId() ) {
+		const QPoint cPos = viewport()->mapFromGlobal(QCursor::pos());
+		const QPoint mousePos = mapToContents(cPos);
+
+		QDocumentCursor newCursor = cursorForPosition(mousePos);
+
+		if ( newCursor.isNull() ) {
+			newCursor = QDocumentCursor(m_doc, 0, 0);
+			if( mousePos.x() >= 0 ) {
+				newCursor.movePosition( 1, QDocumentCursor::End );
+			}
+		}
+
+		if (m_multiClickCursor.isValid()) {
+			m_cursor.select(m_multiClickCursor.lineNumber(), m_multiClickCursor.columnNumber(),
+			                newCursor.lineNumber(), newCursor.columnNumber()
+			                );
+			m_cursor.expandSelect(m_multiClickCursor.property("isTripleClick").toBool() ? QDocumentCursor::LineUnderCursor : m_doubleClickSelectionType);
+		} else {
+			m_cursor.setSelectionBoundary(newCursor);
+		}
+
+		ensureCursorVisible();
+		//emit clearAutoCloseStack();
+		emitCursorPositionChanged();
+
+		repaintCursor();
 	}
 }
 
@@ -3207,7 +3278,7 @@ static int min(const QList<QDocumentCursor>& l)
 
 bool QEditor::protectedCursor(const QDocumentCursor& c) const
 {
-        Q_UNUSED(c);
+        Q_UNUSED(c)
 	/*if ( c.hasSelection() )
 	{
 		int line = qMin(c.lineNumber(), c.anchorLineNumber()), end = qMax(c.lineNumber(), c.anchorLineNumber());
@@ -3378,11 +3449,9 @@ void QEditor::keyPressEvent(QKeyEvent *e)
 		if (op == NoOperation) {
 			QString text = e->text();
 
-#if QT_VERSION >= 0x050000
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
             if(e->modifiers()&(Qt::MetaModifier|Qt::ControlModifier))
                 break;
-#endif
 #endif
             if ( text.isEmpty())
 				break;
@@ -3458,7 +3527,7 @@ void QEditor::keyPressEvent(QKeyEvent *e)
 
 	if ( !handled)
 	{
-		QAbstractScrollArea::keyPressEvent(e);
+        QAbstractScrollArea::keyPressEvent(e);
 
 		foreach ( QEditorInputBindingInterface *b, m_bindings )
 			b->postKeyPressEvent(e, this);
@@ -3560,10 +3629,6 @@ void QEditor::inputMethodEvent(QInputMethodEvent* e)
         }
 
 		m_cursor.insertText(e->commitString());
-#if (QT_VERSION < 0x040700) && (defined(Q_OS_MAC))
-		if(!m_disableAccentHack)
-			m_blockKey=true;
-#endif
 
 		m_cursor.endEditBlock();
 	}
@@ -3614,6 +3679,14 @@ void QEditor::mouseMoveEvent(QMouseEvent *e)
 		}
 
 		repaintCursor();
+
+		if( !(viewport()->rect().contains(e->pos())) ) {
+			//don't accelerate scrolling just because the mouse is moving
+			if( m_autoScroll.isActive() ) break;
+			m_autoScroll.start(33, this);
+		} else {
+			m_autoScroll.stop();
+		}
 
 		const QPoint mousePos = mapToContents(e->pos());
 
@@ -3789,6 +3862,7 @@ void QEditor::mouseReleaseEvent(QMouseEvent *e)
 		if ( b->mouseReleaseEvent(e, this) )
 			return;
 
+	m_autoScroll.stop( );
 	repaintCursor();
 
 	if ( flag(MaybeDrag) )
@@ -4097,7 +4171,7 @@ void QEditor::wheelEvent(QWheelEvent *e)
 {
 	if ( e->modifiers() & Qt::ControlModifier && flag(MouseWheelZoom))
 	{
-		const int delta = e->delta();
+        const int delta = e->angleDelta().y();
 
 		if ( delta > 0 )
 			zoom(1);
@@ -4134,9 +4208,7 @@ void QEditor::resizeEvent(QResizeEvent *)
 	    horizontalScrollBar()->setPageStep(viewportSize.width());
 	}
 
-	const int ls = m_doc->getLineSpacing();
-	verticalScrollBar()->setMaximum(qMax(0, 1 + (m_doc->height() - viewportSize.height()) / ls));
-	verticalScrollBar()->setPageStep(viewportSize.height() / ls);
+	setVerticalScrollBarMaximum();
 
 	emit visibleLinesChanged();
 	//qDebug("page step : %i", viewportSize.height() / ls);
@@ -5490,7 +5562,6 @@ void QEditor::ensureCursorVisible(const QDocumentCursor& cursor, MoveFlags mflag
         ytarget-=surrounding;
         if(ytarget<0)
             ytarget=0;
-#if QT_VERSION >= 0x040600
 		int absDeltaY = qAbs(ytarget - verticalScrollBar()->value());
 		if (flag(QEditor::SmoothScrolling) && mflags&Animated) {
 			if (!m_scrollAnimation) {
@@ -5514,9 +5585,6 @@ void QEditor::ensureCursorVisible(const QDocumentCursor& cursor, MoveFlags mflag
 		} else {
 			verticalScrollBar()->setValue(ytarget);
 		}
-#else
-		verticalScrollBar()->setValue(ytarget);
-#endif
     }
 
 	int xval = horizontalOffset(),
@@ -5826,7 +5894,7 @@ void QEditor::insertFromMimeData(const QMimeData *d)
 			bool slow = txt.size() > 5*1024;
 			if (slow) emit slowOperationStarted();
 			
-			bool macroing = isMirrored() || m_mirrors.size();
+            bool macroing = true; //isMirrored() || m_mirrors.size();
 
 			if ( macroing )
 				m_doc->beginMacro();
@@ -6036,15 +6104,14 @@ void QEditor::documentWidthChanged(int newWidth)
 	Vertical scrollbar is updated here (maximum is changed
 	and value is modified if needed to ensure that the cursor is visible)
 */
-void QEditor::documentHeightChanged(int newHeight)
+void QEditor::documentHeightChanged(int)
 {
 
 	if ( flag(LineWrap) )
 	{
 		m_doc->setWidthConstraint(wrapWidth());
 	}
-	const int ls = document()->getLineSpacing();
-	verticalScrollBar()->setMaximum(qMax(0, 1 + (newHeight - viewport()->height()) / ls));
+	setVerticalScrollBarMaximum();
 	//ensureCursorVisible();
 }
 

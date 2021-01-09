@@ -73,7 +73,7 @@ void LatexCompleterTest::simple_data(){
 					    << "a:>>\\a<<"
 					    << "b:>>\\ab<<"
 					    << "s:>>\\abs<<"
-					    << "*:>>\\abstractname{*}<<");
+                        << "*:>>\\abstractname*<<");
 
 		QTest::newRow("simple no eow comp") << ">><<" << false << false << 0 << 2
 					<< "" << ""
@@ -193,35 +193,35 @@ void LatexCompleterTest::simple_data(){
 					);
 	} else qDebug("skipped some tests");
 
-	QTest::newRow("smbll cmd") << ">><<" << false << false << 0 << 2
+	QTest::newRow("smill cmd") << ">><<" << false << false << 0 << 2
 				<< "" << ""
 				<< (QStringList()
 				    << "\\:>>\\<<"
-				    << "b:>>\\b<<"
-				    << "{:>>\\b{<<"
+				    << "i:>>\\i<<"
+				    << "{:>>\\i{<<"
 				    );
-	QTest::newRow("smbll cmd +pc") << ">><<" << false << true << 0 << 2
+	QTest::newRow("smill cmd +pc") << ">><<" << false << true << 0 << 2
 			<< "" << ""
 				<< (QStringList()
 				<< "\\:>>\\<<"
-				<< "b:>>\\b<<"
-				<< "{:>>\\b{}<<"
-				<< "-:>>\\b{-}<<"
+				<< "i:>>\\i<<"
+				<< "{:>>\\i{}<<"
+				<< "-:>>\\i{-}<<"
 				);
-	QTest::newRow("smbll cmd +ec") << ">><<" << true << false << 0 << 2
+	QTest::newRow("smill cmd +ec") << ">><<" << true << false << 0 << 2
 			<< "" << ""
 			<< (QStringList()
 				    << "\\:>>\\<<"
-				    << "b:>>\\b<<"
-				    << "{:>>\\b{<<"
+				    << "i:>>\\i<<"
+				    << "{:>>\\i{<<"
 				    );
-	QTest::newRow("smbll cmd +ec+pc") << ">><<" << true << true << 0 << 2
+	QTest::newRow("smill cmd +ec+pc") << ">><<" << true << true << 0 << 2
 			<< "" << ""
 				<< (QStringList()
 				<< "\\:>>\\<<"
-				<< "b:>>\\b<<"
-				<< "{:>>\\b{}<<"
-				<< "-:>>\\b{-}<<"
+				<< "i:>>\\i<<"
+				<< "{:>>\\i{}<<"
+				<< "-:>>\\i{-}<<"
 				);
 
 	QTest::newRow("nearest eow +ec") << ">><<" << true << false << 0 << 2
@@ -295,7 +295,7 @@ void LatexCompleterTest::simple(){
 	config->eowCompletes = eowCompletes;
 
 	edView->editor->cutBuffer = "";
-	
+
 	edView->editor->setFlag(QEditor::AutoCloseChars, autoParenComplete);
 	edView->editor->setText(text, false);
 	edView->editor->setCursor(edView->editor->document()->cursor(line,offset));
@@ -312,12 +312,15 @@ void LatexCompleterTest::simple(){
 		QString ist=edView->editor->text();
 		QEQUAL(ist, text);
 	}
- 
+
 	edView->editor->clearPlaceHolders();
 	edView->editor->clearCursorMirrors();
 }
 
 void LatexCompleterTest::keyval_data(){
+    const QString trEnvironmentName = QObject::tr("*environment-name*");
+    const QString trContent = QObject::tr("content...");
+
     QTest::addColumn<QString>("text");
     QTest::addColumn<QString>("workingDir");
     QTest::addColumn<int>("line");
@@ -334,7 +337,7 @@ void LatexCompleterTest::keyval_data(){
                                 << "b:>>\\b<<"
                                 << "e:>>\\be<<"
                                 << "g:>>\\beg<<"
-                                << "\n:>>\\begin{*environment-name*}\n\tcontent...\n\\end{*environment-name*}<<");
+                                << "\n:>>\\begin{" + trEnvironmentName + "}\n\t" + trContent + "\n\\end{" + trEnvironmentName + "}<<");
 
     QTest::newRow("ref") << ">>{}<<" << "" <<  0 << 3 << 5
                             << "" << ""

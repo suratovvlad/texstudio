@@ -14,6 +14,7 @@ class WebPublishDialogConfig;
 class InsertGraphicsConfig;
 struct PDFDocumentConfig;
 class GrammarCheckerConfig;
+class InternalTerminalConfig;
 
 #ifdef Q_OS_WIN
 const QKeySequence::SequenceFormat SHORTCUT_FORMAT = QKeySequence::PortableText;
@@ -34,6 +35,8 @@ class ConfigManager: public QObject, public ConfigManagerInterface
 	Q_OBJECT
 
 public:
+    static const int MAX_NUM_MACROS = 5000;
+
     ConfigManager(QObject *parent = nullptr);
 	~ConfigManager();
 
@@ -44,6 +47,9 @@ public:
 	QSettings *newQSettings();
 	QSettings *readSettings(bool reread = false);
 	QSettings *saveSettings(const QString &saveName = "");
+    QSettings *getSettings();
+
+    void saveMacros();
 
     bool execConfigDialog(QWidget *parentToDialog);
 
@@ -70,9 +76,11 @@ public:
 	//svn
 	//bool autoCheckinAfterSave;
 	int autoCheckinAfterSaveLevel;
+    int useVCS; // 0 SVN   1 GIT
 	bool svnUndo;
 	bool svnKeywordSubstitution;
 	int svnSearchPathDepth;
+
 
 	//appearance
 	QPalette systemPalette;
@@ -80,6 +88,8 @@ public:
 	QString interfaceFontFamily;
 	int guiToolbarIconSize, guiSymbolGridIconSize;
 	int guiSecondaryToolbarIconSize;
+    int guiPDFToolbarIconSize;
+    int guiConfigShortcutColumnWidth;
 	bool useTexmakerPalette;
 	int interfaceFontSize;
 	bool mruDocumentChooser;
@@ -126,6 +136,9 @@ public:
 	//Grammar check
 	GrammarCheckerConfig *const grammarCheckerConfig;
 
+	//Terminal
+	InternalTerminalConfig *const terminalConfig;
+
 	//bool autoReplaceCommands; // moved to static codesnippet
 
 	int tabstop;
@@ -143,6 +156,7 @@ public:
 
 	// LogView
 	double logViewWarnIfFileSizeLargerMB;
+    int logViewRememberChoice;
 
 	//preview
 	enum PreviewMode {PM_TOOLTIP_AS_FALLBACK = 0, PM_PANEL, PM_TOOLTIP, PM_BOTH, PM_INLINE, PM_EMBEDDED};
@@ -187,10 +201,6 @@ public:
 	QString spellLanguage;
 	QString spell_dic, thesaurus_database;
 
-	// custom highlighting
-	QStringList enviromentModes;
-	QMap<QString, QVariant> customEnvironments;
-
 	//debug
 #ifndef QT_NO_DEBUG
 	QDateTime debugLastFileModification;
@@ -213,7 +223,7 @@ public:
 	QList<QMenu *> managedMenus;
 	QHash<QString, QKeySequence> managedMenuShortcuts;
 	QList<QPair<QString, QString> > managedMenuNewShortcuts;
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
 	//workaround that osx/qt does not support alt+key/esc as shortcuts
     QMultiMap<QKeySequence, QAction *> specialShortcuts;
 #endif
@@ -268,6 +278,7 @@ signals:
 	void watchedMenuChanged(const QString &menuId);
 	void iconSizeChanged(int value);
 	void secondaryIconSizeChanged(int value);
+    void pdfIconSizeChanged(int value);
 	void symbolGridIconSizeChanged(int value);
 public:
 //private:

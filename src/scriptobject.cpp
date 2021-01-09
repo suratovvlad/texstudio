@@ -72,7 +72,7 @@ void ScriptObject::crash_sigfpe()
 {
 	if (!confirmWarning("Do you want to let txs crash with a SIGFPE?")) return;
 	int x = 1 / global0;
-	Q_UNUSED(x);
+	Q_UNUSED(x)
 }
 
 void ScriptObject::crash_stack()
@@ -80,7 +80,7 @@ void ScriptObject::crash_stack()
 	if (!confirmWarning("Do you want to let txs crash with a stack overflow?")) return;
 	int temp = global0;
 	crash_stack();
-	Q_UNUSED(temp);
+	Q_UNUSED(temp)
 }
 
 void ScriptObject::crash_loop()
@@ -115,7 +115,7 @@ ProcessX *ScriptObject::system(const QString &commandline, const QString &workin
 	else
 		p = buildManager->newProcessInternal(commandline, QFileInfo()); //use internal, so people can pass | to sh
     if (!p) return nullptr;
-	connect(p, SIGNAL(finished(int)), p, SLOT(deleteLater()));
+	connect(p, SIGNAL(finished(int, QProcess::ExitStatus)), p, SLOT(deleteLater()));
 	QMetaObject::invokeMethod(reinterpret_cast<QObject *>(app), "connectSubCommand", Q_ARG(ProcessX *, p), Q_ARG(bool, true));
 	if (!workingDirectory.isEmpty())
 		p->setWorkingDirectory(workingDirectory);

@@ -32,7 +32,7 @@ void MathAssistant::exec()
 		return;
 	}
 	process.setWorkingDirectory(QFileInfo(texTablet).absolutePath());
-	process.start("\"" + texTablet + "\"");
+    process.start("\"" + texTablet + "\"",QStringList());
 }
 
 void MathAssistant::processError(QProcess::ProcessError err)
@@ -64,7 +64,7 @@ void MathAssistant::processError(QProcess::ProcessError err)
 
 void MathAssistant::processFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-	Q_UNUSED(exitCode);
+	Q_UNUSED(exitCode)
 	if (exitStatus != QProcess::NormalExit) {
 		UtilsUi::txsCritical(tr("TexTablet crashed."));
 	}

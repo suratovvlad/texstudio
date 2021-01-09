@@ -6,22 +6,19 @@
 #include <QProcessEnvironment>
 #include <QMutex>
 
-
-Help *Help::m_Instance = nullptr;
-
-Help::Help() :
-    QObject(nullptr)
+Help::Help(QObject *parent): QObject(parent),texDocSystem(0)
 {
+
 }
 
-QStringList Help::getAdditionalCmdSearchPathList()
-{
-	return ConfigManagerInterface::getInstance()->getOption("Tools/Search Paths").toString().split(getPathListSeparator());
-}
-
+/*!
+ * \brief execute a dialog to let the user choose a package to show its documentation
+ * \param packages
+ * \param defaultPackage
+ */
 void Help::execTexdocDialog(const QStringList &packages, const QString &defaultPackage)
 {
-	TexdocDialog dialog;
+    TexdocDialog dialog(nullptr,this);
 	dialog.setPackageNames(packages);
 	if (!defaultPackage.isEmpty()) {
 		dialog.setPreferredPackage(defaultPackage);
@@ -31,7 +28,10 @@ void Help::execTexdocDialog(const QStringList &packages, const QString &defaultP
 		QString package = dialog.selectedPackage();
 	}
 }
-
+/*!
+ * \brief run texdoc --view package
+ * \param package
+ */
 void Help::viewTexdoc(QString package)
 {
 	if (package.isEmpty()) {
@@ -40,32 +40,21 @@ void Help::viewTexdoc(QString package)
 		package = act->data().toString();
 	}
 	if (!package.isEmpty()) {
-		if (texdocCommand().isEmpty()) UtilsUi::txsWarning(tr("texdoc not found."));
-		QProcess *proc = new QProcess(this);
-		connect(proc, SIGNAL(finished(int)), this, SLOT(texdocProcessFinished()));
-#ifdef Q_OS_OSX
-		QStringList paths;
-		paths.append(getEnvironmentPathList());
-		paths.append(getAdditionalCmdSearchPathList());
-
-		updatePathSettings(proc, paths.join(':'));
-#endif
-		proc->start(texdocCommand(), QStringList() << "--view" << package);
-		if (isTexdocExpectedToFinish() && !proc->waitForFinished(2000)) {
-			UtilsUi::txsWarning(QString(tr("texdoc took too long to open the documentation for the package:") + "\n%1").arg(package));
-		}
+        QString answer=runTexdoc("--view "+package);
 	}
 }
 
-int Help::texDocSystem = 0;
 
+/*!
+ * \brief check if system runs miktex
+ * Tries to run texdoc --veriosn and analyzes result.
+ * Miktex starts with MikTeX ...
+ * \return
+ */
 bool Help::isMiktexTexdoc()
 {
-	if (!texDocSystem && !texdocCommand().isEmpty()) {
-		QProcess proc;
-		proc.start(texdocCommand(), QStringList() << "--version");
-		proc.waitForFinished(1000);
-		QString answer = QString(proc.readAll());
+    if (!texDocSystem) {
+        QString answer=runTexdoc("--version");
 		texDocSystem = answer.startsWith("MiKTeX") ? 1 : 2;
 	}
 	return (texDocSystem == 1);
@@ -75,7 +64,7 @@ bool Help::isTexdocExpectedToFinish()
 {
 	if (!isMiktexTexdoc()) return true;
 	QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-	foreach (const QString &var, envKeys(env)) {
+    foreach (const QString &var, env.keys()) {
 		if (var.startsWith("MIKTEX_VIEW_")) {
 			// miktex texdoc will run as long as the viewer is opened when the MIKTEX_VIEW_* variables are set
 			// http://docs.miktex.org/manual/mthelp.html
@@ -85,59 +74,33 @@ bool Help::isTexdocExpectedToFinish()
 	return true;
 }
 
-QString Help::m_texdocCommand;
-
-QString Help::texdocCommand()
-{
-	if (m_texdocCommand.isEmpty()) {
-		QStringList paths;
-		paths.append(getEnvironmentPathList());
-		paths.append(getAdditionalCmdSearchPathList());
-#ifdef Q_OS_WIN
-		QString cmd = findAbsoluteFilePath("texdoc", "exe", paths, "not_found");
-#else
-		QString cmd = findAbsoluteFilePath("texdoc", "", paths, "not_found");
-#endif
-		m_texdocCommand = cmd.startsWith("not_found") ? "" : cmd;
-	}
-	return m_texdocCommand;
-}
-
+/*!
+ * \brief search for documentation files for a given package
+ * It uses texdoc to access that information.
+ * \param package
+ * \param silent
+ * \return
+ */
 QString Help::packageDocFile(const QString &package, bool silent)
 {
-	QString cmd = texdocCommand();
+    QString cmd = BuildManager::CMD_TEXDOC;
 	if (cmd.isEmpty()) {
 		if (!silent) UtilsUi::txsWarning(tr("texdoc not found."));
 		return QString();
 	}
 	QStringList args;
-	if (Help::isMiktexTexdoc()) {
+    if (isMiktexTexdoc()) {
 		args << "--list-only";
 	} else {
 		args << "--list" << "--machine";
 	}
 	args << package;
-	QProcess proc;
 
-#ifdef Q_OS_OSX
-	QStringList paths;
-	paths.append(getEnvironmentPathList());
-	paths.append(getAdditionalCmdSearchPathList());
 
-	updatePathSettings(&proc, paths.join(':'));
-#endif
+    QString output =runTexdoc(args.join(" "));
 
-	proc.start(cmd, args);
-
-	if (!proc.waitForFinished(2000)) {
-		if (!silent) {
-			UtilsUi::txsWarning(QString(tr("texdoc did not respond to query on package:") + "\n%1").arg(package));
-		}
-		return QString();
-	}
-	QString output = proc.readAllStandardOutput();
 	QStringList allFiles;
-	if (Help::isMiktexTexdoc()) {
+    if (isMiktexTexdoc()) {
 		allFiles = output.split("\r\n");
 	} else {
 		foreach (const QString &line, output.split("\n")) {
@@ -152,12 +115,19 @@ QString Help::packageDocFile(const QString &package, bool silent)
 	}
 	return QString();
 }
-
+/*!
+ * \brief search for documentation files for a given package asynchrnously
+ * It uses texdoc to access that information.
+ * The results are processed in texdocAvailableRequestFinished
+ * \param package
+ * \param silent
+ * \return
+ */
 void Help::texdocAvailableRequest(const QString &package)
 {
 	if (package.isEmpty())
 		return;
-	if (texdocCommand().isEmpty()) {
+    if (BuildManager::CMD_TEXDOC.isEmpty()) {
 		emit texdocAvailableReply(package, false, tr("texdoc not found."));
 		return;
 	}
@@ -171,62 +141,68 @@ void Help::texdocAvailableRequest(const QString &package)
 		// There seems to be no option yielding only the would be called command
 		// Alternative: texdoc --list -M and parse the first line for the package name
 	}
-	QProcess *proc = new QProcess(this);
-	proc->setProperty("package", package);
-	connect(proc, SIGNAL(finished(int)), SLOT(texdocAvailableRequestFinished(int)));
-#ifdef Q_OS_OSX
-	QStringList paths;
-	paths.append(getEnvironmentPathList());
-	paths.append(getAdditionalCmdSearchPathList());
+    runTexdocAsync(args.join(" "),SLOT(texdocAvailableRequestFinished(int,QProcess::ExitStatus)));
 
-	updatePathSettings(proc, paths.join(':'));
-#endif
-	proc->start(texdocCommand(), args);
 }
+void Help::texdocAvailableRequestFinished(int,QProcess::ExitStatus status){
 
-void Help::texdocAvailableRequestFinished(int exitCode)
-{
-	Q_UNUSED(exitCode);
-	QProcess *proc = qobject_cast<QProcess *>(sender());
-	if (!proc) return;
-	QString package = proc->property("package").toString();
-	QString docCommand = proc->readAll();
-    if(!isMiktexTexdoc() && !docCommand.isEmpty()){
+    if(status!=QProcess::NormalExit) return; // texdoc --list failed
+
+    ProcessX *proc=qobject_cast<ProcessX *>(sender());
+    QString *buffer=proc->getStdoutBuffer();
+    QString cmdLine=proc->getCommandLine();
+    int i=cmdLine.lastIndexOf(" ");
+    QString package;
+    if(i>-1){
+        package=cmdLine.mid(i+1);
+    }
+
+
+    if(buffer==nullptr) return; // sanity check
+
+    if(!isMiktexTexdoc() && !buffer->isEmpty()){
         // analyze texdoc --list result in more detail, as it gives results even for partially matched names
-        QStringList lines=docCommand.split("\n");
+        QStringList lines=buffer->split("\n");
         QString line=lines.first();
         QStringList cols=line.split("\t");
         if(cols.count()>4){
             if(cols.value(1).startsWith("-")){
-                docCommand.clear(); // only partial, no real match
+                buffer->clear(); // only partial, no real match
             }
         }
     }
 
-	emit texdocAvailableReply(package, !docCommand.isEmpty(), QString());
-	proc->deleteLater();
+    emit texdocAvailableReply(package, !buffer->isEmpty(), QString());
+
+    delete buffer;
 }
 
-void Help::texdocProcessFinished()
+/*!
+ * \brief run texdoc command
+ * \param args
+ * \return
+ */
+QString Help::runTexdoc(QString args) const
 {
-	QProcess *proc = qobject_cast<QProcess *>(sender());
-	if (proc) {
-		QString message(proc->readAllStandardError().trimmed());
-		if (!message.isEmpty())
-			UtilsUi::txsWarning(message);
-		proc->deleteLater();
-	}
+    QString output;
+    emit statusMessage(QString(" texdoc "));
+    emit runCommand(BuildManager::CMD_TEXDOC+" "+args, &output);
+    return output;
+}
+/*!
+ * \brief run texdoc command asynchronously
+ * \param args
+ * \param finishedCMD SLOT for return path
+ * \return
+ */
+bool Help::runTexdocAsync(QString args,const char * finishedCMD)
+{
+    emit statusMessage(QString(" texdoc (async)"));
+    emit runCommandAsync(BuildManager::CMD_TEXDOC+" "+args, finishedCMD);
+    return true;
 }
 
-Help *Help::instance()
-{
-	static QMutex mutex;
-	mutex.lock();
-	if (!m_Instance)
-		m_Instance = new Help();
-	mutex.unlock();
-	return m_Instance;
-}
+
 
 
 LatexReference::LatexReference(QObject *parent) : QObject(parent) {}
@@ -238,8 +214,6 @@ void LatexReference::setFile(QString filename)
 
 	QFile f(filename);
 	if (!f.open(QFile::ReadOnly | QFile::Text)) return;
-	QTime t;
-	t.start();
 	QTextStream stream(&f);
 	stream.setCodec("UTF-8");
 	m_htmltext = stream.readAll();
@@ -251,7 +225,7 @@ bool LatexReference::contains(const QString &command)
 	return m_anchors.contains(command);
 }
 
-/* tries to generate a text of suitable length for display as a tooltip */
+/// tries to generate a text of suitable length for display as a tooltip
 QString LatexReference::getTextForTooltip(const QString &command)
 {
 	QString sectionText = getSectionText(command);
@@ -270,7 +244,7 @@ QString LatexReference::getTextForTooltip(const QString &command)
 	return sectionText;
 }
 
-/* get all the text in the section describing the command
+/*! get all the text in the section describing the command
  * it starts with the first heading after the section anchor and ranges down to the next <hr>
  */
 QString LatexReference::getSectionText(const QString &command)
@@ -290,8 +264,8 @@ QString LatexReference::getSectionText(const QString &command)
 	return m_htmltext.mid(sAnchor.start_pos, sAnchor.end_pos - sAnchor.start_pos);
 }
 
-/* get only a partial description for the command
- * the serach looks for the following block types (sqare brackets mark the extrated text:
+/*! get only a partial description for the command
+ *  the serach looks for the following block types (sqare brackets mark the extrated text:
  *    [<dt>(anchor-in-here)</dt><dd></dd>]
  *    </div>[(anchor-in-here)]</a name=
  */

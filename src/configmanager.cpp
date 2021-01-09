@@ -11,6 +11,7 @@
 #include "insertgraphics_config.h"
 #include "grammarcheck_config.h"
 #include "PDFDocument_config.h"
+#include "terminal_config.h"
 #include "encoding.h"
 #include "codesnippet.h"
 #include "updatechecker.h"
@@ -22,6 +23,10 @@
 #include "qformatconfig.h"
 
 #include "manhattanstyle.h"
+
+#ifdef ADWAITA
+#include "adwaitastyle.h"
+#endif
 
 const QString TXS_AUTO_REPLACE_QUOTE_OPEN = "TMX:Replace Quote Open";
 const QString TXS_AUTO_REPLACE_QUOTE_CLOSE = "TMX:Replace Quote Close";
@@ -317,7 +322,7 @@ bool ManagedProperty::readFromObject(const QObject *w)
 	if (action) {
 		Q_ASSERT(type == PT_BOOL);
 		Q_ASSERT(action->isCheckable());
-		READ_FROM_OBJECT(bool, action->isChecked());
+		READ_FROM_OBJECT(bool, action->isChecked())
 	}
 
 	const QTextEdit *textEdit = qobject_cast<const QTextEdit *>(w);
@@ -336,6 +341,7 @@ bool ManagedProperty::readFromObject(const QObject *w)
 }
 #undef READ_FROM_OBJECT
 
+const int ConfigManager::MAX_NUM_MACROS;
 QTextCodec *ConfigManager::newFileEncoding = nullptr;
 QString ConfigManager::configDirOverride;
 bool ConfigManager::dontRestoreSession=false;
@@ -392,13 +398,14 @@ QString getCmdID(QWidget *w)
 }
 
 ConfigManager::ConfigManager(QObject *parent): QObject (parent),
-    buildManager(nullptr), editorConfig(new LatexEditorViewConfig),
+  buildManager(nullptr), editorConfig(new LatexEditorViewConfig),
 	completerConfig (new LatexCompleterConfig),
 	webPublishDialogConfig (new WebPublishDialogConfig),
 	pdfDocumentConfig(new PDFDocumentConfig),
 	insertGraphicsConfig(new InsertGraphicsConfig),
 	grammarCheckerConfig(new GrammarCheckerConfig),
-    menuParent(nullptr), menuParentsBar(nullptr), modifyMenuContentsFirstCall(true), pdflatexEdit(nullptr), persistentConfig(nullptr)
+  terminalConfig(new InternalTerminalConfig),
+  menuParent(nullptr), menuParentsBar(nullptr), modifyMenuContentsFirstCall(true), pdflatexEdit(nullptr), persistentConfig(nullptr)
 {
 
 	Q_ASSERT(!globalConfigManager);
@@ -435,9 +442,6 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Structure/MarkStructureElementsInAppendix", &markStructureElementsInAppendix, true, &pseudoDialog->checkBoxMarkStructureElementsInAppendix);
 	registerOption("StructureView/ReferenceCommandsInContextMenu", &referenceCommandsInContextMenu, "\\ref", &pseudoDialog->leReferenceCommandsInContextMenu);
 
-	enviromentModes << "verbatim" << "numbers" << "picture" << "comment";
-
-
 	//beginRegisterGroup("texmaker");
 	//files
 	registerOption("Files/New File Encoding", &newFileEncodingName, "utf-8", &pseudoDialog->comboBoxEncoding); //check
@@ -466,7 +470,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 	registerOption("Files/Bib Paths", &additionalBibPaths, env.value("BIBINPUTS", ""), &pseudoDialog->lineEditPathBib);
 	registerOption("Files/Image Paths", &additionalImagePaths, env.value("TEXINPUTS", ""), &pseudoDialog->lineEditPathImages);
-	
+
 	registerOption("Session/StoreRelativePaths", &sessionStoreRelativePaths, true, &pseudoDialog->checkBoxSessionStoreRelativePaths);
 
 	registerOption("Editor/GoToErrorWhenDisplayingLog", &goToErrorWhenDisplayingLog , true, &pseudoDialog->checkBoxGoToErrorWhenDisplayingLog);
@@ -503,6 +507,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Editor/Weak Indent", &editorConfig->weakindent, false);
 	registerOption("Editor/Indent with Spaces", &editorConfig->replaceIndentTabs, false, &pseudoDialog->checkBoxReplaceIndentTabByWhitespace);
 	registerOption("Editor/ReplaceTextTabs", &editorConfig->replaceTextTabs, false, &pseudoDialog->checkBoxReplaceTextTabByWhitespace);
+	registerOption("Editor/RemoveTrailingWsOnSave", &editorConfig->removeTrailingWsOnSave, false, &pseudoDialog->checkboxRemoveTrailingWsOnSave);
 	registerOption("Editor/Folding", &editorConfig->folding, true, &pseudoDialog->checkBoxFolding);
 	registerOption("Editor/Show Line State", &editorConfig->showlinestate, true, &pseudoDialog->checkBoxLineState);
 	registerOption("Editor/Show Cursor State", &editorConfig->showcursorstate, true, &pseudoDialog->checkBoxState);
@@ -556,6 +561,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Editor/AllowDragAndDrop", &editorConfig->allowDragAndDrop, true, &pseudoDialog->checkBoxAllowDragAndDrop);
 	registerOption("Editor/Mouse Wheel Zoom", &editorConfig->mouseWheelZoom, true, &pseudoDialog->checkBoxMouseWheelZoom);
 	registerOption("Editor/Smooth Scrolling", &editorConfig->smoothScrolling, true, &pseudoDialog->checkBoxSmoothScrolling);
+	registerOption("Editor/Vertical Over Scroll", &editorConfig->verticalOverScroll, false, &pseudoDialog->checkBoxVerticalOverScroll);
 
 	registerOption("Editor/Hack Auto Choose", &editorConfig->hackAutoChoose, true, &pseudoDialog->checkBoxHackAutoRendering);
 	registerOption("Editor/Hack Disable Fixed Pitch", &editorConfig->hackDisableFixedPitch, false, &pseudoDialog->checkBoxHackDisableFixedPitch);
@@ -597,7 +603,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
     registerOption("Editor/insertCiteCommand",&citeCommand,"\\cite",&pseudoDialog->lineEditCiteCommand);
 
 	//table autoformating
-	registerOption("TableAutoformat/Special Commands", &tableAutoFormatSpecialCommands, "\\hline,\\cline,\\intertext,\\shortintertext,\\toprule,\\midrule,\\bottomrule", &pseudoDialog->leTableFormatingSpecialCommands);
+    registerOption("TableAutoformat/Special Commands", &tableAutoFormatSpecialCommands, "\\hline,\\cline,\\intertext,\\shortintertext,\\toprule,\\midrule,\\bottomrule", &pseudoDialog->leTableFormatingSpecialCommands);
 	registerOption("TableAutoformat/Special Command Position", &tableAutoFormatSpecialCommandPos, 0, &pseudoDialog->cbTableFormatingSpecialCommandPos);
 	registerOption("TableAutoformat/One Line Per Cell", &tableAutoFormatOneLinePerCell, false, &pseudoDialog->cbTableFormatingOneLinePerCell);
 
@@ -650,15 +656,29 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Tools/Log Paths", &BuildManager::additionalLogPaths, "", &pseudoDialog->lineEditPathLog);
 	registerOption("Tools/PDF Paths", &BuildManager::additionalPdfPaths, "", &pseudoDialog->lineEditPathPDF);
 
-	//SVN
+    //SVN/GIT
 	//registerOption("Tools/Auto Checkin after Save", &autoCheckinAfterSave, false, &pseudoDialog->cbAutoCheckin);
+    registerOption("Tools/UseVCS", &useVCS, 0, &pseudoDialog->comboBoxUseVCS);
 	registerOption("Tools/Auto Checkin after Save level", &autoCheckinAfterSaveLevel, 0, &pseudoDialog->comboBoxAutoCheckinLevel);
 	registerOption("Tools/SVN Undo", &svnUndo, false, &pseudoDialog->cbSVNUndo);
 	registerOption("Tools/SVN KeywordSubstitution", &svnKeywordSubstitution, false, &pseudoDialog->cbKeywordSubstitution);
 	registerOption("Tools/SVN Search Path Depth", &svnSearchPathDepth, 2, &pseudoDialog->sbDirSearchDepth);
 
+#ifdef INTERNAL_TERMINAL
+	registerOption("Terminal/ColorScheme", &terminalConfig->terminalColorScheme, "Linux", &pseudoDialog->comboBoxTerminalColorScheme);
+	registerOption("Terminal/Font Family", &terminalConfig->terminalFontFamily, "", &pseudoDialog->comboBoxTerminalFont);
+	registerOption("Terminal/Font Size", &terminalConfig->terminalFontSize, -1, &pseudoDialog->spinBoxTerminalFontSize);
+	registerOption("Terminal/Shell", &terminalConfig->terminalShell, "/bin/bash", &pseudoDialog->lineEditTerminalShell);
+#endif
+
 	//interfaces
-	registerOption("GUI/Style", &modernStyle, false, &pseudoDialog->comboBoxInterfaceModernStyle);
+    int defaultStyle=0;
+    if(systemUsesDarkMode()){
+        // use modern style -dark in case of dark mode.
+        // this is only relevant on the very first start-up of txs
+        defaultStyle=2;
+    }
+    registerOption("GUI/Style", &modernStyle, defaultStyle, &pseudoDialog->comboBoxInterfaceModernStyle);
 #if defined Q_WS_X11 || defined Q_OS_LINUX
 	interfaceFontFamily = "<later>";
 	interfaceStyle = "<later>";
@@ -674,6 +694,8 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("GUI/ToobarIconSize", &guiToolbarIconSize, 22);
 	registerOption("GUI/SymbolSize", &guiSymbolGridIconSize, 32);
 	registerOption("GUI/SecondaryToobarIconSize", &guiSecondaryToolbarIconSize, 16);
+    registerOption("GUI/PDFToobarIconSize", &guiPDFToolbarIconSize, 16);
+    registerOption("GUI/ConfigShorcutColumnWidth", &guiConfigShortcutColumnWidth, 200);
 
 	registerOption("View/ShowStatusbar", &showStatusbar, true);
 
@@ -691,7 +713,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Preview/SegmentPreviewScalePercent", &segmentPreviewScalePercent, 150, &pseudoDialog->spinBoxSegmentPreviewScalePercent);
 
 	//pdf preview
-	QRect screen = QApplication::desktop()->availableGeometry();
+	QRect screen = QGuiApplication::primaryScreen()->availableGeometry();
 	registerOption("Geometries/PdfViewerLeft", &pdfDocumentConfig->windowLeft, screen.left() + screen.width() * 2 / 3);
 	registerOption("Geometries/PdfViewerTop", &pdfDocumentConfig->windowTop, screen.top() + 10);
 	registerOption("Geometries/PdfViewerWidth", &pdfDocumentConfig->windowWidth, screen.width() / 3 - 26);
@@ -718,11 +740,13 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Preview/HighlightDuration", &pdfDocumentConfig->highlightDuration, 2000, &pseudoDialog->spinBoxHighlightDuration);
 	registerOption("Preview/Sync File Mask", &pdfDocumentConfig->syncFileMask, "*.tex;*.tikz;*.pdf_tex;*.ctx", &pseudoDialog->lineEditPreviewSyncFileMask);
 	registerOption("Preview/AutoHideToolbars", &pdfDocumentConfig->autoHideToolbars, false, &pseudoDialog->autoHideToolbars);
+	registerOption("Preview/Auto Full Recompile", &editorConfig->fullCompilePreview, false, &pseudoDialog->autoRecompileFullDocument);
 
 	registerOption("Preview/EnlargedEmbedded", &viewerEnlarged, false);
 
 	// LogView
 	registerOption("LogView/WarnIfFileSizeLargerMB", &logViewWarnIfFileSizeLargerMB, 2.0);
+    registerOption("LogView/RememberChoiceLargeFile", &logViewRememberChoice, 0);
 
 #ifndef QT_NO_DEBUG
 	registerOption("Debug/Last Application Modification", &debugLastFileModification);
@@ -740,7 +764,8 @@ ConfigManager::~ConfigManager()
 	delete webPublishDialogConfig;
 	delete insertGraphicsConfig;
 	delete persistentConfig;
-    globalConfigManager = nullptr;
+	delete terminalConfig;
+	globalConfigManager = nullptr;
 }
 
 QString ConfigManager::iniPath()
@@ -844,7 +869,8 @@ QSettings *ConfigManager::readSettings(bool reread)
 #define PREFIX
 #endif
 			fallBackPaths << PREFIX"/share/hunspell" << PREFIX"/share/myspell"
-			              << "/usr/share/hunspell" << "/usr/share/myspell" ;
+                          << "/usr/share/hunspell" << "/usr/share/myspell"
+                          << parseDir("[txs-app-dir]/../share/texstudio") ;
 #endif
 #ifdef Q_OS_MAC
 			fallBackPaths << parseDir("[txs-app-dir]/Contents/Resources") << "/Applications/texstudio.app/Contents/Resources";
@@ -883,7 +909,8 @@ QSettings *ConfigManager::readSettings(bool reread)
 		QStringList preferredPaths = QStringList() << parseDir("[txs-settings-dir]/dictionaries");
 		QStringList fallBackPaths;
 #ifdef Q_OS_LINUX
-		fallBackPaths << PREFIX"/share/mythes" << "/usr/share/mythes" ;
+        fallBackPaths << PREFIX"/share/mythes" << "/usr/share/mythes"
+                      << parseDir("[txs-app-dir]/../share/texstudio") ;
 #endif
 		thesaurus_database = findResourceFile("th_" + QString(QLocale::system().name()) + "_v2.dat", true, preferredPaths, fallBackPaths);
 		if (thesaurus_database == "") thesaurus_database = findResourceFile("th_en_US_v2.dat", true, preferredPaths, fallBackPaths);
@@ -902,7 +929,7 @@ QSettings *ConfigManager::readSettings(bool reread)
 	//----------------------------editor--------------------
 
 	//completion
-	QStringList cwlFiles = config->value("Editor/Completion Files", QStringList() << "tex.cwl" << "latex-document.cwl"  << "latex-dev.cwl" << "latex-mathsymbols.cwl").toStringList();
+	QStringList cwlFiles = config->value("Editor/Completion Files", QStringList() << "tex.cwl" << "latex-document.cwl"  << "latex-dev.cwl").toStringList();
 	//completerConfig->words=loadCwlFiles(cwlFiles,ltxCommands,completerConfig);
 	LatexParser &latexParser = LatexParser::getInstance();
 
@@ -999,11 +1026,11 @@ QSettings *ConfigManager::readSettings(bool reread)
 
 	//user macros
 	if (!reread) {
-        QDir dir(configBaseDir+"/macro");
+        QDir dir(joinPath(configBaseDir,"macro"));
         if(dir.exists()){
             // use file based macros
-            for (int i = 0; i < 1000; i++) {
-                QString fileName=QString(configBaseDir+"/macro/Macro_%1.txsMacro").arg(i);
+            for (int i = 0; i < ConfigManager::MAX_NUM_MACROS; i++) {
+                QString fileName=joinPath(configBaseDir,"macro",QString("Macro_%1.txsMacro").arg(i));
                 if(QFile(fileName).exists()){
                     Macro macro;
                     macro.load(fileName);
@@ -1014,7 +1041,7 @@ QSettings *ConfigManager::readSettings(bool reread)
             }
         }else{
             if (config->value("Macros/0").isValid()) {
-                for (int i = 0; i < 1000; i++) {
+                for (int i = 0; i < ConfigManager::MAX_NUM_MACROS; i++) {
                     QStringList ls = config->value(QString("Macros/%1").arg(i)).toStringList();
                     if (ls.isEmpty()) break;
                     completerConfig->userMacros.append(Macro(ls));
@@ -1122,8 +1149,7 @@ QSettings *ConfigManager::readSettings(bool reread)
 	replacedIconsOnMenus = config->value("customIcons").toMap();
 
 	//custom highlighting
-	customEnvironments = config->value("customHighlighting").toMap();
-	LatexParser::getInstance().customCommands = QSet<QString>::fromList(config->value("customCommands").toStringList());
+    LatexParser::getInstance().customCommands = convertStringListtoSet(config->value("customCommands").toStringList());
 
 	//--------------------appearance------------------------------------
 	QFontDatabase fdb;
@@ -1180,6 +1206,10 @@ QSettings *ConfigManager::readSettings(bool reread)
 #endif
 	QApplication::setFont(QFont(interfaceFontFamily, interfaceFontSize));
 
+#ifdef INTERNAL_TERMINAL
+	terminalConfig->initDefaults(xf);
+#endif
+
 	config->endGroup();
 
 	return config;
@@ -1228,28 +1258,9 @@ QSettings *ConfigManager::saveSettings(const QString &saveName)
 	//-------------------key replacements-----------------
 	config->setValue("User/New Key Replacements Created", true);
 
-	//user macros
-    bool newlyCreatedPath=!QDir(configBaseDir+"/macro").exists();
-    if(newlyCreatedPath){
-        newlyCreatedPath=QDir().mkpath(configBaseDir+"/macro");
-    }
+    saveMacros();
 
-	int index = 0;
-    foreach (Macro macro, completerConfig->userMacros) {
-		if (macro.name == TXS_AUTO_REPLACE_QUOTE_OPEN || macro.name == TXS_AUTO_REPLACE_QUOTE_CLOSE || macro.document)
-			continue;
-        if(newlyCreatedPath && index<10 && index!=2){
-            macro.setShortcut(QString("Shift+F%1").arg(index+1));
-        }
-        macro.save(QString("%1macro/Macro_%2.txsMacro").arg(configBaseDir).arg(index));
-		config->setValue(QString("Macros/%1").arg(index++), macro.toStringList());
-	}
-    // remove unused macro files
-    // lazy approach, only first macro is removed
-    QFile fn(QString("%1macro/Macro_%2.txsMacro").arg(configBaseDir).arg(index));
-    if(fn.exists()){
-        fn.remove();
-    }
+    int index=0;
 	while (config->contains(QString("Macros/%1").arg(index))) { //remove old macros which are not used any more
 		config->remove(QString("Macros/%1").arg(index));
 		index++;
@@ -1283,17 +1294,53 @@ QSettings *ConfigManager::saveSettings(const QString &saveName)
 	}
 	config->setValue("customIcons", replacedIconsOnMenus);
 	// custom highlighting
-	config->setValue("customHighlighting", customEnvironments);
-	QStringList zw = LatexParser::getInstance().customCommands.toList();
+    QStringList zw = LatexParser::getInstance().customCommands.values();
 	config->setValue("customCommands", zw);
 
 	config->endGroup();
 
-	config->sync();
+    config->sync();
 
-	return config;
+    return config;
 }
 
+QSettings *ConfigManager::getSettings()
+{
+    return persistentConfig;
+}
+
+void ConfigManager::saveMacros()
+{
+    //user macros
+    bool newlyCreatedPath=!QDir(configBaseDir+"/macro").exists();
+    if(newlyCreatedPath){
+        newlyCreatedPath=QDir().mkpath(configBaseDir+"/macro");
+    }
+
+    int index = 0;
+    foreach (Macro macro, completerConfig->userMacros) {
+        if (macro.name == TXS_AUTO_REPLACE_QUOTE_OPEN || macro.name == TXS_AUTO_REPLACE_QUOTE_CLOSE || macro.document)
+            continue;
+        if(newlyCreatedPath && index<10 && index!=2){
+            macro.setShortcut(QString("Shift+F%1").arg(index+1));
+        }
+        macro.save(QString("%1macro/Macro_%2.txsMacro").arg(configBaseDir).arg(index++));
+    }
+    // remove unused macro files
+    // lazy approach, only first macro is removed
+    QFile fn(QString("%1macro/Macro_%2.txsMacro").arg(configBaseDir).arg(index));
+    if(fn.exists()){
+        fn.remove();
+    }
+}
+
+/*!
+ * \brief show and execute configuration dialog
+ * Translates internal settings into human readable settings and vice versa
+ * Fills the config dialog with available settings
+ * \param parentToDialog
+ * \return dialog was exited with "okay"
+ */
 bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 {
 	ConfigDialog *confDlg = new ConfigDialog(parentToDialog);
@@ -1346,6 +1393,8 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 
 	QStringList files;
 	foreach(const QString &dirname, QDir::searchPaths("cwl")) {
+        if(dirname.endsWith("autogenerated"))
+            continue; // don't offer autogenerated cwls for gobal completion files (as they are for syntax checking only and rather bad at it)
 		files << QDir(dirname).entryList(QStringList("*.cwl"), QDir::Files);
 	}
 
@@ -1424,7 +1473,7 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 	QMultiMap<int, QString> keysReversed;
 	QHash<QString, int>::const_iterator it = this->editorKeys.constBegin();
 	while (it != this->editorKeys.constEnd()) {
-		keysReversed.insertMulti(it.value(), it.key());
+        keysReversed.insert(it.value(), it.key());
 		++it;
 	}
 	int ht = confDlg->ui.comboBoxLanguage->minimumSizeHint().height();
@@ -1460,8 +1509,8 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 	QSize sz = twi->sizeHint(0);
 	twi->setSizeHint(0, QSize(sz.width(), ht));
 #else
-	Q_UNUSED(twi);
-	Q_UNUSED(ht);
+	Q_UNUSED(twi)
+	Q_UNUSED(ht)
 #endif
 
 	ShortcutDelegate delegate;
@@ -1514,53 +1563,26 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 	//appearance
 	QString displayedInterfaceStyle = interfaceStyle == "" ? tr("default") : interfaceStyle;
 	confDlg->ui.comboBoxInterfaceStyle->clear();
-	confDlg->ui.comboBoxInterfaceStyle->addItems(QStyleFactory::keys() << tr("default"));
+    QStringList availableStyles=QStyleFactory::keys();
+#ifdef ADWAITA
+    availableStyles << "Adwaita (txs)" << "Adwaita Dark (txs)";
+#endif
+    availableStyles << tr("default");
+    confDlg->ui.comboBoxInterfaceStyle->addItems(availableStyles);
 	confDlg->ui.comboBoxInterfaceStyle->setCurrentIndex(confDlg->ui.comboBoxInterfaceStyle->findText(displayedInterfaceStyle));
 	confDlg->ui.comboBoxInterfaceStyle->setEditText(displayedInterfaceStyle);
 
 	confDlg->fmConfig->setBasePointSize( editorConfig->fontSize );
 	confDlg->fmConfig->addScheme("", QDocument::defaultFormatScheme());
 
-	// custom higlighting
-	{
-		confDlg->environModes = &enviromentModes;
-		int l = 0;
-		confDlg->ui.twHighlighEnvirons->setRowCount(customEnvironments.size() + 1);
-		QMap<QString, QVariant>::const_iterator i;
-		for (i = customEnvironments.constBegin(); i != customEnvironments.constEnd(); ++i) {
-			QString env = i.key();
-			QTableWidgetItem *item = new QTableWidgetItem(env);
-			confDlg->ui.twHighlighEnvirons->setItem(l, 0, item);
-			//item=new QTableWidgetItem(i.value());
-            QComboBox *cb = new QComboBox(nullptr);
-			cb->insertItems(0, enviromentModes);
-			cb->setCurrentIndex(i.value().toInt());
-			confDlg->ui.twHighlighEnvirons->setCellWidget(l, 1, cb);
-			l++;
-		}
-		QTableWidgetItem *item = new QTableWidgetItem("");
-		confDlg->ui.twHighlighEnvirons->setItem(l, 0, item);
-		//item=new QTableWidgetItem(i.value());
-        QComboBox *cb = new QComboBox(nullptr);
-		cb->insertItems(0, enviromentModes);
-		confDlg->ui.twHighlighEnvirons->setCellWidget(l, 1, cb);
-
-		confDlg->ui.twCustomSyntax->setRowCount(LatexParser::getInstance().customCommands.count() + 1);
-		l = 0;
-		foreach (const QString &cmd, LatexParser::getInstance().customCommands) {
-			QTableWidgetItem *item = new QTableWidgetItem(cmd);
-			confDlg->ui.twCustomSyntax->setItem(l, 0, item);
-			l++;
-		}
-		item = new QTableWidgetItem("");
-		confDlg->ui.twCustomSyntax->setItem(l, 0, item);
-	}
 	// set scaling sizes
 	confDlg->ui.horizontalSliderIcon->setValue(guiToolbarIconSize);
 	confDlg->ui.horizontalSliderCentraIcon->setValue(guiSecondaryToolbarIconSize);
 	confDlg->ui.horizontalSliderSymbol->setValue(guiSymbolGridIconSize);
+    confDlg->ui.horizontalSliderPDF->setValue(guiPDFToolbarIconSize);
 	connect(confDlg->ui.horizontalSliderIcon, SIGNAL(valueChanged(int)), SIGNAL(iconSizeChanged(int)));
 	connect(confDlg->ui.horizontalSliderCentraIcon, SIGNAL(valueChanged(int)), SIGNAL(secondaryIconSizeChanged(int)));
+    connect(confDlg->ui.horizontalSliderPDF, SIGNAL(valueChanged(int)), SIGNAL(pdfIconSizeChanged(int)));
 	connect(confDlg->ui.horizontalSliderSymbol, SIGNAL(valueChanged(int)), SIGNAL(symbolGridIconSizeChanged(int)));
 
 	//EXECUTE IT
@@ -1637,7 +1659,6 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 		LatexParser &latexParser = LatexParser::getInstance();
 		latexParser.clear();
 		latexParser.init();
-		//completerConfig->words=loadCwlFiles(newFiles,ltxCommands,completerConfig);
         completerConfig->words.clear();
         QSet<QString>loadedFiles;
         QStringList tobeLoaded=newFiles;
@@ -1732,12 +1753,12 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 		buildManager->setAllCommands(tempCommands, userOrder);
 		/*TODO for (BuildManager::LatexCommand cmd=BuildManager::CMD_LATEX; cmd < BuildManager::CMD_USER_QUICK; ++cmd){
 			if (!commandsToEdits.value(cmd)) continue;
-			buildManager->setLatexCommand(cmd,commandsToEdits.value(cmd)->text());;
+			buildManager->setLatexCommand(cmd,commandsToEdits.value(cmd)->text());
 		}
 
 		for (BuildManager::LatexCommand cmd=BuildManager::CMD_SVN; cmd <= BuildManager::CMD_SVNADMIN; ++cmd){
 			if (!commandsToEdits.value(cmd)) continue;
-			buildManager->setLatexCommand(cmd,commandsToEdits.value(cmd)->text());;
+			buildManager->setLatexCommand(cmd,commandsToEdits.value(cmd)->text());
 		}*/
 
 		/*Q_ASSERT(confDlg->checkboxInternalPDFViewer);
@@ -1781,7 +1802,7 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 
 		//menus
 		managedMenuNewShortcuts.clear();
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
 		specialShortcuts.clear();
 #endif
 		treeWidgetToManagedMenuTo(menuShortcuts);
@@ -1818,32 +1839,17 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 		if (language == tr("default")) language = "";
 		if (language != lastLanguage) loadTranslations(language);
 
-		// custom highlighting
-		customEnvironments.clear();
-		for (int i = 0; i < confDlg->ui.twHighlighEnvirons->rowCount(); i++) {
-			QString env = confDlg->ui.twHighlighEnvirons->item(i, 0)->text();
-			if (!env.isEmpty()) {
-				if (env.endsWith("*") && !env.endsWith("\\*"))
-					env.replace(env.length() - 1, 1, "\\*");
-				QComboBox *cb = qobject_cast<QComboBox *>(confDlg->ui.twHighlighEnvirons->cellWidget(i, 1));
-				customEnvironments.insert(env, cb->currentIndex());
-			}
-		}
-		latexParser.customCommands.clear();
-		for (int i = 0; i < confDlg->ui.twCustomSyntax->rowCount(); i++) {
-			QString cmd = confDlg->ui.twCustomSyntax->item(i, 0)->text();
-			if (!cmd.isEmpty())
-				latexParser.customCommands.insert(cmd);
-		}
 		// GUI scaling
 		guiToolbarIconSize = confDlg->ui.horizontalSliderIcon->value();
 		guiSecondaryToolbarIconSize = confDlg->ui.horizontalSliderCentraIcon->value();
 		guiSymbolGridIconSize = confDlg->ui.horizontalSliderSymbol->value();
+        guiPDFToolbarIconSize = confDlg->ui.horizontalSliderPDF->value();
 	} else {
 		// GUI scaling
 		confDlg->ui.horizontalSliderIcon->setValue(guiToolbarIconSize);
 		confDlg->ui.horizontalSliderCentraIcon->setValue(guiSecondaryToolbarIconSize);
 		confDlg->ui.horizontalSliderSymbol->setValue(guiSymbolGridIconSize);
+        confDlg->ui.horizontalSliderPDF->setValue(guiPDFToolbarIconSize);
 
 	}
 	delete confDlg;
@@ -2126,7 +2132,7 @@ QAction *ConfigManager::newManagedAction(QWidget *menu, const QString &id, const
 
 	act->setObjectName(completeId);
 	act->setShortcuts(shortCuts);
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
 	// workaround for osx not being able to use alt+key/esc as shortcut
 	for (int i = 0; i < shortCuts.size(); i++)
 		specialShortcuts.insert(shortCuts[i], act);
@@ -2164,9 +2170,9 @@ QAction *ConfigManager::newManagedAction(QObject *rootMenu,QWidget *menu, const 
     if (iconFile.isEmpty()) act = new QAction(text, rootMenu);
     else act = new QAction(getRealIcon(iconFile), text, rootMenu);
 
-    act->setObjectName(completeId);
+	act->setObjectName(completeId);
     act->setShortcuts(shortCuts);
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
     // workaround for osx not being able to use alt+key/esc as shortcut
     for (int i = 0; i < shortCuts.size(); i++)
         specialShortcuts.insert(shortCuts[i], act);
@@ -2523,7 +2529,7 @@ void ConfigManager::setManagedShortCut(QAction *act, int num, const QKeySequence
 	if (num < shortcuts.size()) shortcuts[num] = ks;
 	else shortcuts << ks;
 	act->setShortcuts(shortcuts);
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
 	// workaround for osx not being able to use alt+key/esc as shortcut
     // remove old shortcuts
     QString name=act->objectName();
@@ -2657,78 +2663,138 @@ void ConfigManager::loadTranslations(QString locale)
 	basicTranslator->load(findResourceFile("qt_" + locale + ".qm"));
 	//}
 }
-
+/*!
+ * \brief set txs InterfaceStyle
+ * Fall-back to default style if none is defined
+ * Also detect whether light- or dark-mode is used by checking the colour of text (white -> dark background -> dark mode)
+ */
 void ConfigManager::setInterfaceStyle()
 {
 	//style is controlled by the properties interfaceStyle, modernStyle and useTexmakerPalette
 	//default values are read from systemPalette and defaultStyleName
 
 	QString newStyle = interfaceStyle != "" ? interfaceStyle : defaultStyleName;
-	if (!QStyleFactory::keys().contains(newStyle)) newStyle = defaultStyleName;
-#if QT_VERSION >= 0x040500
-	if (modernStyle) {
-		ManhattanStyle *style = new ManhattanStyle(newStyle);
-		if (style->isValid()) QApplication::setStyle(style);
-	} else
+
+    bool handled=false;
+#ifdef ADWAITA
+    if(newStyle=="Adwaita (txs)"){
+        QApplication::setStyle(new Adwaita::Style(false));
+        handled=true;
+    }
+    if(newStyle=="Adwaita Dark (txs)"){
+        QApplication::setStyle(new Adwaita::Style(true));
+        handled=true;
+    }
 #endif
-		QApplication::setStyle(newStyle);
-	QPalette pal = systemPalette;
-	if (useTexmakerPalette) { //modify palette like texmaker does it
-		pal.setColor(QPalette::Active, QPalette::Highlight, QColor("#4490d8"));
-		pal.setColor(QPalette::Inactive, QPalette::Highlight, QColor("#4490d8"));
-		pal.setColor(QPalette::Disabled, QPalette::Highlight, QColor("#4490d8"));
+    if(!handled){
+        if (!QStyleFactory::keys().contains(newStyle)) newStyle = defaultStyleName;
 
-		pal.setColor(QPalette::Active, QPalette::HighlightedText, QColor("#ffffff"));
-		pal.setColor(QPalette::Inactive, QPalette::HighlightedText, QColor("#ffffff"));
-		pal.setColor(QPalette::Disabled, QPalette::HighlightedText, QColor("#ffffff"));
+        if (modernStyle) {
+            ManhattanStyle *style = new ManhattanStyle(newStyle);
+            if (style->isValid()) QApplication::setStyle(style);
+        } else
+            QApplication::setStyle(newStyle);
+    }
 
-		pal.setColor(QPalette::Active, QPalette::Base, QColor("#ffffff"));
-		pal.setColor(QPalette::Inactive, QPalette::Base, QColor("#ffffff"));
-		pal.setColor(QPalette::Disabled, QPalette::Base, QColor("#ffffff"));
 
-		pal.setColor(QPalette::Active, QPalette::WindowText, QColor("#000000"));
-		pal.setColor(QPalette::Inactive, QPalette::WindowText, QColor("#000000"));
-		pal.setColor(QPalette::Disabled, QPalette::WindowText, QColor("#000000"));
+    // dark mode is derived from system text color (very light => dark mode)
+    // however if system colors are ignored, only style manhattan - dark results in dark mode
+    // do the check after setting style, as the style can also activate a dark mode
+    if(useTexmakerPalette){
+        darkMode=modernStyle>1;
+    }else{
+        darkMode=systemUsesDarkMode();
+    }
 
-		pal.setColor( QPalette::Active, QPalette::Text, QColor("#000000") );
-		pal.setColor( QPalette::Inactive, QPalette::Text, QColor("#000000") );
-		pal.setColor( QPalette::Disabled, QPalette::Text, QColor("#000000") );
+    QPalette pal = systemPalette;
+    if (useTexmakerPalette) { //modify palette like texmaker does it
+        if(darkMode){
+            pal.setColor(QPalette::Active, QPalette::Highlight, QColor("#4490d8"));
+            pal.setColor(QPalette::Inactive, QPalette::Highlight, QColor("#4490d8"));
+            pal.setColor(QPalette::Disabled, QPalette::Highlight, QColor("#4490d8"));
 
-		pal.setColor(QPalette::Active, QPalette::ButtonText, QColor("#000000"));
-		pal.setColor(QPalette::Inactive, QPalette::ButtonText, QColor("#000000"));
-		pal.setColor(QPalette::Disabled, QPalette::ButtonText, QColor("#000000"));
+            pal.setColor(QPalette::Active, QPalette::HighlightedText, QColor("#FFFFFF"));
+            pal.setColor(QPalette::Inactive, QPalette::HighlightedText, QColor("#ffffff"));
+            pal.setColor(QPalette::Disabled, QPalette::HighlightedText, QColor("#ffffff"));
 
-		pal.setColor( QPalette::ToolTipText, QColor("#000000") );
+            pal.setColor(QPalette::Active, QPalette::Base, QColor("#303030"));
+            pal.setColor(QPalette::Inactive, QPalette::Base, QColor("#303030"));
+            pal.setColor(QPalette::Disabled, QPalette::Base, QColor("#303030"));
 
-		pal.setColor( QPalette::ToolTipBase, QColor("#FFFFDC") );
+            pal.setColor(QPalette::Active, QPalette::WindowText, QColor("#e0e0e0"));
+            pal.setColor(QPalette::Inactive, QPalette::WindowText, QColor("#e0e0e0"));
+            pal.setColor(QPalette::Disabled, QPalette::WindowText, QColor("#e0e0e0"));
 
-		if (x11desktop_env() == 4) {
-			pal.setColor(QPalette::Active, QPalette::Window, QColor("#eae9e9"));
-			pal.setColor(QPalette::Inactive, QPalette::Window, QColor("#eae9e9"));
-			pal.setColor(QPalette::Disabled, QPalette::Window, QColor("#eae9e9"));
+            pal.setColor( QPalette::Active, QPalette::Text, QColor("#ffffff") );
+            pal.setColor( QPalette::Inactive, QPalette::Text, QColor("#ffffff") );
+            pal.setColor( QPalette::Disabled, QPalette::Text, QColor("#ffffff") );
 
-			pal.setColor(QPalette::Active, QPalette::Button, QColor("#eae9e9"));
-			pal.setColor(QPalette::Inactive, QPalette::Button, QColor("#eae9e9"));
-			pal.setColor(QPalette::Disabled, QPalette::Button, QColor("#eae9e9"));
-		} else {
-			/*pal.setColor(QPalette::Active, QPalette::Window, QColor("#fbf8f1"));
-			pal.setColor(QPalette::Inactive, QPalette::Window, QColor("#fbf8f1"));
-			pal.setColor(QPalette::Disabled, QPalette::Window, QColor("#fbf8f1"));
+            pal.setColor(QPalette::Active, QPalette::ButtonText, QColor("#f0f0f0"));
+            pal.setColor(QPalette::Inactive, QPalette::ButtonText, QColor("#ffffff"));
+            pal.setColor(QPalette::Disabled, QPalette::ButtonText, QColor("#ffffff"));
 
-			pal.setColor(QPalette::Active, QPalette::Button, QColor("#fbf8f1"));
-			pal.setColor(QPalette::Inactive, QPalette::Button, QColor("#fbf8f1"));
-			pal.setColor(QPalette::Disabled, QPalette::Button, QColor("#fbf8f1"));*/
-			pal.setColor( QPalette::Active, QPalette::Window, QColor("#f6f3eb") );
-			pal.setColor( QPalette::Inactive, QPalette::Window, QColor("#f6f3eb") );
-			pal.setColor( QPalette::Disabled, QPalette::Window, QColor("#f6f3eb") );
+            pal.setColor( QPalette::ToolTipText, QColor("#ffffff") );
 
-			pal.setColor( QPalette::Active, QPalette::Button, QColor("#f6f3eb") );
-			pal.setColor( QPalette::Inactive, QPalette::Button, QColor("#f6f3eb") );
-			pal.setColor( QPalette::Disabled, QPalette::Button, QColor("#f6f3eb") );
+            pal.setColor( QPalette::ToolTipBase, QColor("#002020") );
 
-		}
-	}
-	QApplication::setPalette(pal);
+            pal.setColor( QPalette::Active, QPalette::Window, QColor("#000000") );
+            pal.setColor( QPalette::Inactive, QPalette::Window, QColor("#000000") );
+            pal.setColor( QPalette::Disabled, QPalette::Window, QColor("#000000") );
+
+            pal.setColor( QPalette::Active, QPalette::Button, QColor("#2a2a2a") );
+            pal.setColor( QPalette::Inactive, QPalette::Button, QColor("#2a2a2a") );
+            pal.setColor( QPalette::Disabled, QPalette::Button, QColor("#2a2a2a") );
+
+        }else{
+            pal.setColor(QPalette::Active, QPalette::Highlight, QColor("#4490d8"));
+            pal.setColor(QPalette::Inactive, QPalette::Highlight, QColor("#4490d8"));
+            pal.setColor(QPalette::Disabled, QPalette::Highlight, QColor("#4490d8"));
+
+            pal.setColor(QPalette::Active, QPalette::HighlightedText, QColor("#ffffff"));
+            pal.setColor(QPalette::Inactive, QPalette::HighlightedText, QColor("#ffffff"));
+            pal.setColor(QPalette::Disabled, QPalette::HighlightedText, QColor("#ffffff"));
+
+            pal.setColor(QPalette::Active, QPalette::Base, QColor("#ffffff"));
+            pal.setColor(QPalette::Inactive, QPalette::Base, QColor("#ffffff"));
+            pal.setColor(QPalette::Disabled, QPalette::Base, QColor("#ffffff"));
+
+            pal.setColor(QPalette::Active, QPalette::WindowText, QColor("#000000"));
+            pal.setColor(QPalette::Inactive, QPalette::WindowText, QColor("#000000"));
+            pal.setColor(QPalette::Disabled, QPalette::WindowText, QColor("#000000"));
+
+            pal.setColor( QPalette::Active, QPalette::Text, QColor("#000000") );
+            pal.setColor( QPalette::Inactive, QPalette::Text, QColor("#000000") );
+            pal.setColor( QPalette::Disabled, QPalette::Text, QColor("#000000") );
+
+            pal.setColor(QPalette::Active, QPalette::ButtonText, QColor("#000000"));
+            pal.setColor(QPalette::Inactive, QPalette::ButtonText, QColor("#000000"));
+            pal.setColor(QPalette::Disabled, QPalette::ButtonText, QColor("#000000"));
+
+            pal.setColor( QPalette::ToolTipText, QColor("#000000") );
+
+            pal.setColor( QPalette::ToolTipBase, QColor("#FFFFDC") );
+
+            if (x11desktop_env() == 4) {
+                pal.setColor(QPalette::Active, QPalette::Window, QColor("#eae9e9"));
+                pal.setColor(QPalette::Inactive, QPalette::Window, QColor("#eae9e9"));
+                pal.setColor(QPalette::Disabled, QPalette::Window, QColor("#eae9e9"));
+
+                pal.setColor(QPalette::Active, QPalette::Button, QColor("#eae9e9"));
+                pal.setColor(QPalette::Inactive, QPalette::Button, QColor("#eae9e9"));
+                pal.setColor(QPalette::Disabled, QPalette::Button, QColor("#eae9e9"));
+            } else {
+                pal.setColor( QPalette::Active, QPalette::Window, QColor("#f6f3eb") );
+                pal.setColor( QPalette::Inactive, QPalette::Window, QColor("#f6f3eb") );
+                pal.setColor( QPalette::Disabled, QPalette::Window, QColor("#f6f3eb") );
+
+                pal.setColor( QPalette::Active, QPalette::Button, QColor("#f6f3eb") );
+                pal.setColor( QPalette::Inactive, QPalette::Button, QColor("#f6f3eb") );
+                pal.setColor( QPalette::Disabled, QPalette::Button, QColor("#f6f3eb") );
+
+            }
+        }
+    }
+    QApplication::setPalette(pal);
 }
 
 /*! GridLayout::rowCount() apparently never decreases. Instead there may be empty rows at the end

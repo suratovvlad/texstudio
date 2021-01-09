@@ -57,13 +57,15 @@ UserMenuDialog::UserMenuDialog(QWidget *parent,  QString name, QLanguageFactory 
 	//editor options
 	ui.tagEdit->setLayout(new QVBoxLayout());
 	codeedit = new QCodeEdit(ui.tagEdit);
-    codeedit->editor()->document()->setCenterDocumentInEditor(false);
+	codeedit->editor()->setFlag(QEditor::AdjustIndent, false);
+	codeedit->editor()->document()->setCenterDocumentInEditor(false);
+	languages->setLanguage(codeedit->editor(), "");
 	//QLineMarkPanel* lineMarkPanel=new QLineMarkPanel;
 	//QAction* lineMarkPanelAction=codeedit->addPanel(lineMarkPanel, QCodeEdit::West, false);
 	//Q_UNUSED(lineMarkPanelAction)
 	QLineNumberPanel *lineNumberPanel = new QLineNumberPanel;
 	lineNumberPanel->setVerboseMode(true);
-	QAction *lineNumberPanelAction = codeedit->addPanel(lineNumberPanel, QCodeEdit::West, false);;
+	QAction *lineNumberPanelAction = codeedit->addPanel(lineNumberPanel, QCodeEdit::West, false);
 	Q_UNUSED(lineNumberPanelAction)
 	QAction *lineFoldPanelAction = codeedit->addPanel(new QFoldPanel, QCodeEdit::West, false);
 	Q_UNUSED(lineFoldPanelAction)
@@ -106,19 +108,11 @@ UserMenuDialog::UserMenuDialog(QWidget *parent,  QString name, QLanguageFactory 
 	connect(codeedit->editor()->document(), SIGNAL(contentsChanged()), SLOT(textChanged()));
 	connect(ui.itemEdit, SIGNAL(textEdited(QString)), SLOT(nameChanged()));
     connect(ui.teDescription, SIGNAL(textChanged()), SLOT(descriptionChanged()));
-#if QT_VERSION >= 0x050000
     connect(ui.cbShortcut, SIGNAL(currentTextChanged(QString)), SLOT(shortcutChanged()));
-#else
-    connect(ui.cbShortcut, SIGNAL(editTextChanged(QString)), SLOT(shortcutChanged()));
-#endif
+
 	connect(ui.abbrevEdit, SIGNAL(textEdited(QString)), SLOT(abbrevChanged()));
 	connect(ui.triggerEdit, SIGNAL(textEdited(QString)), SLOT(triggerChanged()));
 	connect(ui.triggerHelp, SIGNAL(linkActivated(QString)), SLOT(showTooltip()));
-
-#if QT_VERSION < 0x050000
-    // no macro browsing with <qt5
-    ui.pbBrowse->hide();
-#endif
 
 }
 
@@ -244,7 +238,7 @@ QTreeWidgetItem *UserMenuDialog::findCreateFolder(QTreeWidgetItem *parent, QStri
 
 void UserMenuDialog::change(QTreeWidgetItem *current,QTreeWidgetItem *previous)
 {
-    Q_UNUSED(previous);
+    Q_UNUSED(previous)
     if (current==nullptr) return;
     QVariant v=current->data(0,Qt::UserRole);
     if(v.isValid()){
@@ -257,25 +251,31 @@ void UserMenuDialog::change(QTreeWidgetItem *current,QTreeWidgetItem *previous)
             ui.triggerEdit->setText(m.trigger);
 
         if (m.shortcut() != ui.cbShortcut->currentText()){
-#if QT_VERSION >= 0x050000
             ui.cbShortcut->setCurrentText(m.shortcut());
-#else
-            ui.cbShortcut->setEditText(m.shortcut());
-#endif
         }
         if (m.description != ui.teDescription->toPlainText())
             ui.teDescription->setPlainText(m.description);
 
         if (codeedit->editor()->text() != m.typedTag()) {
             codeedit->editor()->setText(m.typedTag(), false);
-            if (languages) {
-                QString line = codeedit->editor()->text(0);
-                if (line == "%SCRIPT") languages->setLanguage(codeedit->editor(), ".qs");
-                else if (line.startsWith("%") && !line.startsWith("%%")) languages->setLanguage(codeedit->editor(), "");
-                else languages->setLanguage(codeedit->editor(), "(La)TeX Macro");
-            }
+            setLanguageFromText();
         }
     }
+}
+
+void UserMenuDialog::setLanguageFromText(void)
+{
+	QString line = codeedit->editor()->text(0);
+	if (line == "%SCRIPT") {
+		languages->setLanguage(codeedit->editor(), ".qs");
+		ui.radioButtonScript->setChecked(true);
+	} else if (line.startsWith("%") && !line.startsWith("%%")) {
+		languages->setLanguage(codeedit->editor(), "");
+		ui.radioButtonEnvironment->setChecked(true);
+	} else {
+		languages->setLanguage(codeedit->editor(), "(La)TeX Macro");
+		ui.radioButtonNormal->setChecked(true);
+	}
 }
 
 void UserMenuDialog::slotOk()
@@ -427,7 +427,7 @@ void UserMenuDialog::browseMacrosOnRepository(){
 void UserMenuDialog::changeTypeToNormal()
 {
 	QString cur = codeedit->editor()->text();
-	if (languages) languages->setLanguage(codeedit->editor(), "(La)TeX Macro");
+	languages->setLanguage(codeedit->editor(), "(La)TeX Macro");
 	if (cur.startsWith("%SCRIPT\n")) codeedit->editor()->setText(cur.mid(8), false);
 	else if (cur.startsWith("%") && !cur.startsWith("%%")) codeedit->editor()->setText(cur.mid(1), false);
 }
@@ -435,7 +435,7 @@ void UserMenuDialog::changeTypeToNormal()
 void UserMenuDialog::changeTypeToEnvironment()
 {
 	QString cur = codeedit->editor()->text();
-	if (languages) languages->setLanguage(codeedit->editor(), "");
+	languages->setLanguage(codeedit->editor(), "");
 	if (cur.startsWith("%SCRIPT\n")) {
 		codeedit->editor()->setText("%" + cur.mid(8), false);
 	} else {
@@ -449,7 +449,7 @@ void UserMenuDialog::changeTypeToEnvironment()
 void UserMenuDialog::changeTypeToScript()
 {
 	QString cur = codeedit->editor()->text();
-	if (languages) languages->setLanguage(codeedit->editor(), ".qs");
+	languages->setLanguage(codeedit->editor(), ".qs");
 	if (cur.startsWith("%SCRIPT\n")) return;
 	if (cur.startsWith("%") && !cur.startsWith("%%")) cur = cur.mid(1);
 	codeedit->editor()->setText("%SCRIPT\n" + cur, false);
@@ -457,10 +457,7 @@ void UserMenuDialog::changeTypeToScript()
 
 void UserMenuDialog::textChanged()
 {
-	QString line = codeedit->editor()->text(0);
-	if (line == "%SCRIPT") ui.radioButtonScript->setChecked(true);
-	else if (line.startsWith("%") && !line.startsWith("%%")) ui.radioButtonEnvironment->setChecked(true);
-	else ui.radioButtonNormal->setChecked(true);
+	setLanguageFromText();
     QTreeWidgetItem *item=ui.treeWidget->currentItem();
     if(item==nullptr) return;
     QVariant v=item->data(0,Qt::UserRole);

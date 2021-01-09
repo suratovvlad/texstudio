@@ -40,7 +40,7 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
 	public:
 		Q_PANEL(QSearchReplacePanel, "Search Replace Panel")
 		
-		QSearchReplacePanel(QWidget *p = 0);
+        QSearchReplacePanel(QWidget *p = nullptr);
 		virtual ~QSearchReplacePanel();
 		
 		virtual QString type() const;
@@ -59,6 +59,8 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
         bool getSearchIsCase() const;
         bool getSearchIsRegExp() const;
         bool getSearchIsWords() const;
+
+        void updateIcon();
 		
 		
 	public slots:
@@ -97,7 +99,8 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
 		void on_cbSelection_toggled(bool on);
 		void on_cbEscapeSeq_toggled(bool on);
 		void on_cbPrompt_toggled(bool on);
-		
+
+		void filterChanged();
 
 		void on_bNext_clicked();
 		void on_bPrevious_clicked();
@@ -115,7 +118,8 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
 		void updateSearchOptions(bool replace, bool replaceAll);
 		void on_cFind_returnPressed(bool backward);
 		void on_cReplace_returnPressed(bool backward);
-        void updateButtonSizes();
+		void updateButtonSizes();
+		void setFilteredIconAndFormats(const char* icon, const std::initializer_list<const char*>& formats, bool inverted = false);
 		QDocumentSearch *m_search;
 		bool m_lastDirection;
 		int minimum_width;
@@ -137,6 +141,7 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
         QToolButton *cbHighlight;
         QToolButton *cbCursor;
         QToolButton *cbSelection;
+        QToolButton *cbFilter;
         QToolButton *bExtend;
 		// replace
 		QWidget *replaceWidget;
@@ -151,6 +156,8 @@ class QCE_EXPORT QSearchReplacePanel : public QPanel //, private Ui::SearchRepla
         QLabel *lReplacementText;
 		
 		bool useLineForSearch, searchOnlyInSelection;
+
+        QString currentFilter;
 };
 
 #endif // _QSEARCH_REPLACE_PANEL_H_

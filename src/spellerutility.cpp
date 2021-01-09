@@ -14,10 +14,11 @@
 #include "JlCompress.h"
 
 int SpellerUtility::spellcheckErrorFormat = -1;
+bool SpellerUtility::inlineSpellChecking = true;
+bool SpellerUtility::hideNonTextSpellingErrors = true;
 
 SpellerUtility::SpellerUtility(QString name): mName(name), currentDic(""), pChecker(nullptr), spellCodec(nullptr)
 {
-	checkCache.reserve(1020);
 }
 
 bool SpellerUtility::loadDictionary(QString dic, QString ignoreFilePrefix)
@@ -52,7 +53,6 @@ bool SpellerUtility::loadDictionary(QString dic, QString ignoreFilePrefix)
 		return false;
 	}
 
-	checkCache.clear();
 	ignoredWords.clear();
 	ignoredWordList.clear();
 	ignoredWordsModel.setStringList(QStringList());
@@ -80,10 +80,10 @@ bool SpellerUtility::loadDictionary(QString dic, QString ignoreFilePrefix)
 		encodedString = codec->fromUnicode(elem);
 		pChecker->add(encodedString.data());
 	}
-	qSort(ignoredWordList.begin(), ignoredWordList.end(), localeAwareLessThan);
+    std::sort(ignoredWordList.begin(), ignoredWordList.end(), localeAwareLessThan);
 	while (!ignoredWordList.empty() && ignoredWordList.first().startsWith("%")) ignoredWordList.removeFirst();
 	ignoredWordsModel.setStringList(ignoredWordList);
-	ignoredWords = ignoredWordList.toSet();
+    ignoredWords = convertStringListtoSet(ignoredWordList);
 	mLastError.clear();
 	emit dictionaryLoaded();
 	return true;
@@ -106,6 +106,7 @@ void SpellerUtility::saveIgnoreList()
 
 void SpellerUtility::unload()
 {
+    QMutexLocker locker(&mSpellerMutex);
 	saveIgnoreList();
 	currentDic = "";
 	ignoreListFileName = "";
@@ -122,24 +123,26 @@ void SpellerUtility::addToIgnoreList(QString toIgnore)
 	QString spell_encoding = QString(pChecker->get_dic_encoding());
 	QTextCodec *codec = QTextCodec::codecForName(spell_encoding.toLatin1());
 	encodedString = codec->fromUnicode(word);
+    QMutexLocker locker(&mSpellerMutex);
+    if(!pChecker){
+        return;
+    }
 	pChecker->add(encodedString.data());
 	ignoredWords.insert(word);
 	if (!ignoredWordList.contains(word))
-		ignoredWordList.insert(qLowerBound(ignoredWordList.begin(), ignoredWordList.end(), word, localeAwareLessThan), word);
+        ignoredWordList.insert(std::lower_bound(ignoredWordList.begin(), ignoredWordList.end(), word, localeAwareLessThan), word);
 	ignoredWordsModel.setStringList(ignoredWordList);
 	saveIgnoreList();
-    checkCache.remove(word);
-    QString zw=word; //remove upper letter start as well
-    if(!zw.isEmpty()){
-        zw[0]=zw[0].toUpper();
-        checkCache.remove(zw);
-    }
 	emit ignoredWordAdded(word);
 }
 
 void SpellerUtility::removeFromIgnoreList(QString toIgnore)
 {
 	QByteArray encodedString;
+    QMutexLocker locker(&mSpellerMutex);
+    if(!pChecker){
+        return;
+    }
 	QString spell_encoding = QString(pChecker->get_dic_encoding());
 	QTextCodec *codec = QTextCodec::codecForName(spell_encoding.toLatin1());
 	encodedString = codec->fromUnicode(toIgnore);
@@ -167,16 +170,15 @@ bool SpellerUtility::check(QString word)
 	if (word.length() <= 1) return true;
 	if (ignoredWords.contains(word)) return true;
 	if (word.endsWith('.') && ignoredWords.contains(word.left(word.length() - 1))) return true;
-    if (checkCache.contains(word)) return checkCache.value(word);
+    QMutexLocker locker(&mSpellerMutex);
+    if(!pChecker)
+        return true;
     QByteArray encodedString = spellCodec->fromUnicode(word);
 #if QT_VERSION >= 0x050400
     bool result = pChecker->spell(encodedString.toStdString());
 #else
     bool result = pChecker->spell(QString(encodedString).toStdString());
 #endif
-	while (checkCacheInsertion.size() > 1000) checkCacheInsertion.removeFirst();
-	checkCache.insert(word, result);
-	checkCacheInsertion.append(word);
 	return result;
 }
 
@@ -186,15 +188,20 @@ QStringList SpellerUtility::suggest(QString word)
     if (currentDic == "" || pChecker == nullptr) return QStringList(); //no speller => everything is correct
     std::vector<std::string> wlst;
     QByteArray encodedString = spellCodec->fromUnicode(word);
+    QStringList suggestion;
+
+    QMutexLocker locker(&mSpellerMutex);
+    if(!pChecker)
+        return suggestion;
 #if QT_VERSION >= 0x050400
     wlst = pChecker->suggest(encodedString.toStdString());
 #else
     wlst = pChecker->suggest(QString(encodedString).toStdString());
 #endif
-	QStringList suggestion;
-    int ns=wlst.size();
+
+    unsigned long ns=wlst.size();
 	if (ns > 0) {
-		for (int i = 0; i < ns; i++) {
+        for (uint i = 0; i < ns; i++) {
 #if QT_VERSION >= 0x050400
             suggestion << spellCodec->toUnicode(QByteArray::fromStdString(wlst[i]));
 #else
@@ -310,12 +317,15 @@ QStringList SpellerManager::availableDicts()
 {
 	if (dictFiles.keys().isEmpty())
 		return QStringList() << emptySpeller->name();
-	return QStringList(dictFiles.keys());
+    QStringList dicts=dictFiles.keys();
+    dicts.sort();
+    return QStringList()<< emptySpeller->name() <<dicts;
 }
 
 bool SpellerManager::hasSpeller(const QString &name)
 {
 	if (name == emptySpeller->name()) return true;
+    if (name == "none" || name == "<none>") return true;
 	return dictFiles.contains(name);
 }
 

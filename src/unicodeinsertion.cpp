@@ -1,4 +1,5 @@
 #include "unicodeinsertion.h"
+#include "utilsUI.h"
 
 QString unicodePointToString(unsigned int u)
 {
@@ -29,7 +30,7 @@ void QLineEditWithMetaText::paintEvent ( QPaintEvent *ev)
 	QPainter p(this);
 	QFontMetrics fm(font());
 	p.setPen(QApplication::palette().windowText().color().lighter(50));
-	p.drawText(width() - fm.width(metaText) - 5, (height() + fm.height()) / 2 - 2, metaText);
+	p.drawText(width() - UtilsUi::getFmWidth(fm, metaText) - 5, (height() + fm.height()) / 2 - 2, metaText);
 
 }
 
@@ -48,9 +49,9 @@ UnicodeInsertion::UnicodeInsertion(QWidget *parent, uint defCharCode): QWidget(p
 	table->setRowCount(3);
 	table->setColumnCount(16);
 	for (int i = 0; i < table->rowCount(); i++)
-		table->setRowHeight(i, bh);;
+		table->setRowHeight(i, bh);
     for (int i = 0; i < table->columnCount(); i++)
-		table->setColumnWidth(i, bw);;
+		table->setColumnWidth(i, bw);
 	table->horizontalHeader()->hide();
 	table->verticalHeader()->hide();
 	table->resizeRowsToContents();

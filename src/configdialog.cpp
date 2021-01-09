@@ -9,6 +9,10 @@
  *                                                                         *
  ***************************************************************************/
 
+#ifdef INTERNAL_TERMINAL
+#include <qtermwidget5/qtermwidget.h>
+#endif
+
 #include "configdialog.h"
 #include "configmanager.h"
 
@@ -90,20 +94,21 @@ void ShortcutComboBox::keyPressEvent(QKeyEvent *e)
 
 void ShortcutComboBox::focusInEvent(QFocusEvent *e)
 {
-	Q_UNUSED(e);
+	Q_UNUSED(e)
 	this->lineEdit()->selectAll();
 }
 
 
 ShortcutDelegate::ShortcutDelegate(QObject *parent): treeWidget(nullptr)
 {
-	Q_UNUSED(parent);
+	Q_UNUSED(parent)
 }
+
 QWidget *ShortcutDelegate::createEditor(QWidget *parent,
                                         const QStyleOptionViewItem &option ,
                                         const QModelIndex &index) const
 {
-	Q_UNUSED(option);
+	Q_UNUSED(option)
 
     if (!index.isValid()) return nullptr;
 	const QAbstractItemModel *model = index.model();
@@ -386,6 +391,10 @@ int ConfigDialog::lastUsedPage = 0;
 
 ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPDFViewer(nullptr), riddled(false), oldToolbarIndex(-1), mBuildManager(nullptr)
 {
+    // adapt icon size to dpi
+    double dpi=QGuiApplication::primaryScreen()->logicalDotsPerInch();
+    double scale=dpi/96;
+
 	setModal(true);
 	ui.setupUi(this);
 
@@ -393,8 +402,6 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 	UtilsUi::enableTouchScrolling(ui.scrollAreaBuild);
 	UtilsUi::enableTouchScrolling(ui.menuTree);
 	UtilsUi::enableTouchScrolling(ui.scrollAreaAdvancedEditor);
-	UtilsUi::enableTouchScrolling(ui.twHighlighEnvirons);
-	UtilsUi::enableTouchScrolling(ui.twCustomSyntax);
 	UtilsUi::enableTouchScrolling(ui.scrollAreaGrammar);
 	UtilsUi::enableTouchScrolling(ui.scrollAreaPreview);
 	UtilsUi::enableTouchScrolling(ui.scrollAreaPDFviewer);
@@ -413,7 +420,7 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 
     ui.checkBoxShowCommentedElementsInStructure->setVisible(false); // hide non-functional option, maybe it can be fixed in future
 
-	ui.contentsWidget->setIconSize(QSize(32, 32));
+    ui.contentsWidget->setIconSize(QSize(qRound(32*scale), qRound(32*scale)));
 	//ui.contentsWidget->setViewMode(QListView::ListMode);
 	//ui.contentsWidget->setMovement(QListView::Static);
 
@@ -441,6 +448,11 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 
     ui.comboBoxThesaurusFileName->setCompleter(nullptr);
 
+#ifdef INTERNAL_TERMINAL
+	populateTerminalColorSchemes();
+	populateTerminalComboBoxFont(true);
+#endif
+
 	connect(ui.pushButtonDictDir, SIGNAL(clicked()), this, SLOT(browseDictDir()));
 	connect(ui.leDictDir, SIGNAL(textChanged(QString)), this, SLOT(updateDefaultDictSelection(QString)));
 
@@ -458,12 +470,6 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 
 	ui.labelGetDic->setText(tr("Download additional dictionaries from %1 or %2").arg("<a href=\"http://extensions.openoffice.org/de/search?f[0]=field_project_tags%3A157\">OpenOffice</a>").arg("<a href=\"https://extensions.libreoffice.org/extensions?getCategories=Dictionary&getCompatibility=any\">LibreOffice</a>"));
 	ui.labelGetDic->setOpenExternalLinks(true);
-	//page custom environment
-	connect(ui.pbAddLine, SIGNAL(clicked()), this, SLOT(custEnvAddLine()));
-	connect(ui.pbRemoveLine, SIGNAL(clicked()), this, SLOT(custEnvRemoveLine()));
-	connect(ui.pbAddSyntaxLine, SIGNAL(clicked()), this, SLOT(custSyntaxAddLine()));
-	connect(ui.pbRemoveSyntaxLine, SIGNAL(clicked()), this, SLOT(custSyntaxRemoveLine()));
-    environModes = nullptr;
 	//pagequick
 	connect(ui.pushButtonGrammarWordlists, SIGNAL(clicked()), this, SLOT(browseGrammarWordListsDir()));
 	connect(ui.pushButtonGrammarLTPath, SIGNAL(clicked()), this, SLOT(browseGrammarLTPath()));
@@ -495,26 +501,41 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 	layout->setMargin(0);
 	layout->insertWidget(0, fmConfig);
 
+    ConfigManager *config = dynamic_cast<ConfigManager *>(ConfigManagerInterface::getInstance());
 	ui.shortcutTree->setHeaderLabels(QStringList() << tr("Command") << tr("Default Shortcut") << tr("Current Shortcut") << tr("Additional Shortcut"));
-	ui.shortcutTree->setColumnWidth(0, 200);
+    if(config){
+        ui.shortcutTree->setColumnWidth(0, config->getOption("GUI/ConfigShorcutColumnWidth",200).toInt());
+    }else{
+        ui.shortcutTree->setColumnWidth(0, 200);
+    }
 
 	//create icons
 	createIcon(tr("General"), getRealIcon("config_general"));
 	createIcon(tr("Commands"), getRealIcon("config_commands"));
 	createIcon(tr("Build"), getRealIcon("config_quickbuild"));
 	createIcon(tr("Shortcuts"), getRealIcon("config_shortcut"));
-	createIcon(tr("Menus"), getRealIcon("config_latexmenus"), true);
-	createIcon(tr("Toolbars"), getRealIcon("config_toolbars"), true);
-	createIcon(tr("GUI Scaling"), getRealIcon("config_toolbars"), true);
+	createIcon(tr("Menus"), getRealIcon("config_latexmenus"), CONTENTS_ADVANCED);
+	createIcon(tr("Toolbars"), getRealIcon("config_toolbars"), CONTENTS_ADVANCED);
+	createIcon(tr("GUI Scaling"), getRealIcon("config_toolbars"), CONTENTS_ADVANCED);
 	createIcon(tr("Editor"), getRealIcon("config_editor"));
-	createIcon(tr("Adv. Editor"), getRealIcon("config_advancededitor"), true);
+	createIcon(tr("Adv. Editor"), getRealIcon("config_advancededitor"), CONTENTS_ADVANCED);
 	createIcon(tr("Syntax Highlighting"), getRealIcon("config_highlighting"));
-	createIcon(tr("Custom Highlighting"), getRealIcon("config_highlighting"), true);
 	createIcon(tr("Completion"), getRealIcon("config_completion"));
 	createIcon(tr("Language Checking"), getRealIcon("config_editor"));
 	createIcon(tr("Preview"), getRealIcon("config_preview"));
 	createIcon(tr("Internal PDF Viewer"), getRealIcon("config_preview"));
-	createIcon(tr("SVN"), getRealIcon("config_svn"));
+    createIcon(tr("SVN/GIT"), getRealIcon("config_svn"));
+	createIcon(
+		tr("Internal Terminal"),
+		getRealIcon("config_terminal"),
+#ifdef INTERNAL_TERMINAL
+		CONTENTS_ADVANCED
+#else
+		CONTENTS_DISABLED
+#endif
+	);
+
+	Q_ASSERT(ui.pagesWidget->count() == ui.contentsWidget->count());
 
 	connect(ui.contentsWidget,
 	        SIGNAL(currentItemChanged(QListWidgetItem *, QListWidgetItem *)),
@@ -525,7 +546,7 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 
 	// custom toolbars
 	connect(ui.comboBoxToolbars, SIGNAL(currentIndexChanged(int)), SLOT(toolbarChanged(int)));
-	ui.listCustomToolBar->setIconSize(QSize(22, 22));
+    ui.listCustomToolBar->setIconSize(QSize(qRound(22*scale), qRound(22*scale)));
 	ui.listCustomToolBar->setViewMode(QListView::ListMode);
 	ui.listCustomToolBar->setMovement(QListView::Snap);
 	ui.listCustomToolBar->setDragDropMode(QAbstractItemView::InternalMove);
@@ -539,24 +560,9 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 	connect(ui.comboBoxActions, SIGNAL(currentIndexChanged(int)), SLOT(actionsChanged(int)));
 	connect(ui.treePossibleToolbarActions, SIGNAL(doubleClicked(QModelIndex)), SLOT(toToolbarClicked()));
 
-#if QT_VERSION >= 0x040400
 	ui.treePossibleToolbarActions->setHeaderHidden(true);
-#endif
-	//	ui.listCustomToolBar->setSelectionMode(QAbstractItemView::ExtendedSelection);
-	//	ui.treePossibleToolbarActions->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-#if (QT_VERSION < 0x040600) || (!defined(Q_WS_X11)&&!defined(Q_OS_UNIX))
-	ui.checkBoxUseSystemTheme->setVisible(false);
-#endif
-
-#if QT_VERSION < 0x040800
-	ui.checkBoxVisualColumnMode->setChecked(false);
-	ui.checkBoxVisualColumnMode->setEnabled(false);
-#endif
-
-#if QT_VERSION >= 0x040603
 	ui.lineEditMetaFilter->setPlaceholderText(tr("(option filter)"));
-#endif
 	connect(ui.lineEditMetaFilter, SIGNAL(textChanged(QString)), SLOT(metaFilterChanged(QString)));
 
 	// poppler preview
@@ -572,9 +578,10 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 	connect(ui.tbRevertIcon, SIGNAL(clicked()), this, SLOT(revertClicked()));
 	connect(ui.tbRevertCentralIcon, SIGNAL(clicked()), this, SLOT(revertClicked()));
 	connect(ui.tbRevertSymbol, SIGNAL(clicked()), this, SLOT(revertClicked()));
+    connect(ui.tbRevertPDF, SIGNAL(clicked()), this, SLOT(revertClicked()));
 
 	// limit dialog size
-	QRect screen = QApplication::desktop()->screenGeometry();
+	QRect screen = QGuiApplication::primaryScreen()->geometry();
 	if (!screen.isEmpty()) {
 		int nwidth = width(), nheight = height();
 		if (nwidth > screen.width()) nwidth = screen.width();
@@ -588,9 +595,13 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 
 ConfigDialog::~ConfigDialog()
 {
+    ConfigManager *config = dynamic_cast<ConfigManager *>(ConfigManagerInterface::getInstance());
+    if(config){
+        config->setOption("GUI/ConfigShorcutColumnWidth",ui.shortcutTree->columnWidth(0));
+    }
 }
 
-QListWidgetItem *ConfigDialog::createIcon(const QString &caption, const QIcon &icon, bool advancedOption)
+QListWidgetItem *ConfigDialog::createIcon(const QString &caption, const QIcon &icon, ContentsType contentsType)
 {
 	QListWidgetItem *button = new QListWidgetItem(ui.contentsWidget);
 	button->setIcon(icon);
@@ -598,9 +609,9 @@ QListWidgetItem *ConfigDialog::createIcon(const QString &caption, const QIcon &i
 	button->setToolTip(caption);
 	//button->setTextAlignment(Qt::AlignVCenter);
 	button->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-	if (advancedOption) {
-		//button->setHidden(true);
-		button->setData(Qt::UserRole, true);
+	button->setData(Qt::UserRole, contentsType);
+	if (contentsType == CONTENTS_DISABLED) {
+		button->setHidden(true);
 	}
 	return button;
 }
@@ -627,6 +638,9 @@ void ConfigDialog::revertClicked()
 		if (bt->objectName() == "tbRevertSymbol") {
 			ui.horizontalSliderSymbol->setValue(32);
 		}
+        if (bt->objectName() == "tbRevertPDF") {
+            ui.horizontalSliderPDF->setValue(16);
+        }
 	}
 }
 
@@ -820,9 +834,13 @@ void ConfigDialog::advancedOptionsToggled(bool on)
 
 	hideShowAdvancedOptions(this, on);
 	ui.contentsWidget->reset();
-	for (int i = 0; i < ui.contentsWidget->count(); i++)
-		if (ui.contentsWidget->item(i)->data(Qt::UserRole).toBool())
-			ui.contentsWidget->item(i)->setHidden(!on);
+	for (int i = 0; i < ui.contentsWidget->count(); i++) {
+		ContentsType contentsType = static_cast<ContentsType>(ui.contentsWidget->item(i)->data(Qt::UserRole).toInt());
+		ui.contentsWidget->item(i)->setHidden(
+			((contentsType == CONTENTS_ADVANCED) && (on == false)) ||
+			(contentsType == CONTENTS_DISABLED)
+		);
+	}
 
 	if (currentPage && !currentPage->isHidden()) {
 		currentPage->setSelected(true);
@@ -933,15 +951,15 @@ void ConfigDialog::metaFilterChanged(const QString &filter)
 	ui.checkBoxShowAdvancedOptions->setEnabled(filter.isEmpty());
 
 	for (int i = 0; i < ui.pagesWidget->count(); i++) {
-		bool shown = metaFilterRecurseLayout(filter, ui.pagesWidget->widget(i)->layout());
-		/*QWidget * page = ui.pagesWidget->widget(i);
-		foreach (QObject* o, page->children()){
-			QWidget* w = qobject_cast<QWidget*>(o);
-			if (w) shown |= metaFilterRecurse(filter,  w);
-		}*/
-		ui.contentsWidget->item(i)->setHidden(!shown);
+		QListWidgetItem *oneItem = ui.contentsWidget->item(i);
+		bool shown =
+			(oneItem->data(Qt::UserRole).toInt() == CONTENTS_DISABLED) ?
+			false :
+			metaFilterRecurseLayout(filter, ui.pagesWidget->widget(i)->layout());
+		oneItem->setHidden(!shown);
 	}
 
+	// If selected page is hidden, select the next visible page.
 	if (currentPage && !currentPage->isHidden()) {
 		currentPage->setSelected(true);
 		ui.contentsWidget->setCurrentItem(currentPage);
@@ -1149,77 +1167,34 @@ void ConfigDialog::populateComboBoxFont(bool onlyMonospaced)
 	// restore font setting if possible
 	int idx = ui.comboBoxFont->findText(currentFont);
 	if (idx >= 0) ui.comboBoxFont->setCurrentIndex(idx);
-
 }
 
-void ConfigDialog::custEnvAddLine()
+#ifdef INTERNAL_TERMINAL
+void ConfigDialog::populateTerminalComboBoxFont(bool onlyMonospaced)
 {
-	int i = ui.twHighlighEnvirons->rowCount();
-	ui.twHighlighEnvirons->setRowCount(i + 1);
-
-	QStringList lst;
-	if (environModes)
-		lst = *environModes;
-	else
-		lst << "verbatim" << "math";
-
-	QTableWidgetItem *item = new QTableWidgetItem("");
-	ui.twHighlighEnvirons->setItem(i, 0, item);
-    QComboBox *cb = new QComboBox(nullptr);
-	cb->insertItems(0, lst);
-	ui.twHighlighEnvirons->setCellWidget(i, 1, cb);
-}
-
-void ConfigDialog::custEnvRemoveLine()
-{
-	int i = ui.twHighlighEnvirons->currentRow();
-	if (i < 0)
-		i = ui.twHighlighEnvirons->rowCount() - 1;
-
-	ui.twHighlighEnvirons->removeRow(i);
-
-	i = ui.twHighlighEnvirons->rowCount();
-	if (i == 0) {
-		ui.twHighlighEnvirons->setRowCount(i + 1);
-
-		QStringList lst;
-		if (environModes)
-			lst = *environModes;
-		else
-			lst << "verbatim" << "math";
-
-		QTableWidgetItem *item = new QTableWidgetItem("");
-		ui.twHighlighEnvirons->setItem(i, 0, item);
-        QComboBox *cb = new QComboBox(nullptr);
-		cb->insertItems(0, lst);
-		ui.twHighlighEnvirons->setCellWidget(i, 1, cb);
+	QString currentFont = ui.comboBoxTerminalFont->currentText();
+	ui.comboBoxTerminalFont->clear();
+	QFontDatabase fdb;
+	if (onlyMonospaced) {
+		foreach (const QString &font, fdb.families()) {
+			if (fdb.isFixedPitch(font)) {
+				ui.comboBoxTerminalFont->addItem(font);
+			}
+		}
+	} else {
+		ui.comboBoxTerminalFont->addItems(fdb.families());
 	}
+	// restore font setting if possible
+	int idx = ui.comboBoxTerminalFont->findText(currentFont);
+	if (idx >= 0) ui.comboBoxTerminalFont->setCurrentIndex(idx);
+
 }
 
-void ConfigDialog::custSyntaxAddLine()
+void ConfigDialog::populateTerminalColorSchemes()
 {
-	int i = ui.twCustomSyntax->rowCount();
-	ui.twCustomSyntax->setRowCount(i + 1);
-
-	QTableWidgetItem *item = new QTableWidgetItem("");
-	ui.twCustomSyntax->setItem(i, 0, item);
+	ui.comboBoxTerminalColorScheme->addItems( QTermWidget::availableColorSchemes() );
 }
-
-void ConfigDialog::custSyntaxRemoveLine()
-{
-	int i = ui.twCustomSyntax->currentRow();
-	if (i < 0)
-		i = ui.twCustomSyntax->rowCount() - 1;
-	ui.twCustomSyntax->removeRow(i);
-
-	i = ui.twCustomSyntax->rowCount();
-	if (i == 0) {
-		ui.twCustomSyntax->setRowCount(i + 1);
-
-		QTableWidgetItem *item = new QTableWidgetItem("");
-		ui.twCustomSyntax->setItem(i, 0, item);
-	}
-}
+#endif
 
 bool ConfigDialog::askRiddle()
 {

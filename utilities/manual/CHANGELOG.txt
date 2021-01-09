@@ -1,3 +1,57 @@
+TeXstudio 3.0.5
+-----------------
+- fix crash when deleting all elements of a build chain (#1415)
+
+TeXstudio 3.0.4
+-----------------
+- fix RTL presentation when zoomed (#1404)
+- fix pdf toolbar size setting
+
+TeXstudio 3.0.3
+-----------------
+- fix OSX build
+
+TeXstudio 3.0.2
+-----------------
+- handle \tabularnewline correctly (#1373)
+- fix text insertion on selected text (#1359&#1354)
+- changed behaviour for cut buffer and Ctrl+e (insert env)  (#1342)
+- texdoc added as selectable command
+- win build now uses 64 bit and can handle larger documents
+- larger number of default dictionaries added
+
+TeXstudio 3.0.1
+-----------------
+- fix glitch in modern style (#1238 , triangle missing)
+- fix equation preview (#1234)
+- fix commands with quotes (#1225 & #1169)
+- fix syntax marker in darkmode (#1224)
+
+TeXstudio 3.0.0
+-----------------
+- speed up document parsing, should result in faster document load times
+- spell checking is done asynchronously
+- custom verbatim/math env highlighting abandoned for a cwl based approach
+- better dark-mode support 
+- qt4 support abandoned
+
+TeXstudio 2.12.22
+----------------
+- fixes garbled symbols in OSX
+- fix crash when changing magic language comment 
+- fix pdf search path handling.
+
+TeXstudio 2.12.20
+----------------
+- fixes a problem with replacing when search highlight is activated.
+
+TeXstudio 2.12.18
+----------------
+- bug fixes
+- some cwl added
+- correct handling of \string~ in filenames in \include
+- search can handle more regexp (greedy/lazy) since it has been changed to QRegularExpression on QT5 (no change on QT4)
+
 TeXstudio 2.12.16
 ----------------
 - bug fixes

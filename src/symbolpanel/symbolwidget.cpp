@@ -3,6 +3,7 @@
 #include "symbollistview.h"
 #include "proxymodels.h"
 #include "configmanagerinterface.h"
+#include "utilsUI.h"
 #include <QSortFilterProxyModel>
 
 
@@ -110,9 +111,7 @@ void SymbolWidget::setupSearchArea(QVBoxLayout *vLayout)
 	vLayout->addLayout(hLayout);
 
 	leFilter = new QLineEdit();
-#if QT_VERSION >= 0x040700
 	leFilter->setPlaceholderText(tr("Search"));
-#endif
 	hLayout->addWidget(leFilter);
 
 	categoryFilterButton = new QToolButton();
@@ -122,7 +121,7 @@ void SymbolWidget::setupSearchArea(QVBoxLayout *vLayout)
 	int width = 0;
 	QFontMetrics fm = fontMetrics();
 	foreach (const QString &name, categoryNames.values()) {
-		width = qMax(width, fm.width(name) + 20);
+		width = qMax(width, UtilsUi::getFmWidth(fm, name) + 20);
 	}
 	categoryFilterButton->setMinimumWidth(width);
 	hLayout->addWidget(categoryFilterButton);

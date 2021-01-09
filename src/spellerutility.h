@@ -12,6 +12,7 @@
 #define SPELLERUTILITY_H
 
 #include "mostQtHeaders.h"
+#include <QMutex>
 
 #ifdef HUNSPELL_STATIC
 #include "hunspell/hunspell.hxx"
@@ -35,6 +36,7 @@ public:
 	QString getCurrentDic() {return currentDic;}
 
 	static int spellcheckErrorFormat;
+    static bool inlineSpellChecking,hideNonTextSpellingErrors;
 
 signals:
 	void aboutToDelete();
@@ -53,11 +55,10 @@ private:
 	QString currentDic, ignoreListFileName, spell_encoding;
 	Hunspell * pChecker;
 	QTextCodec *spellCodec;
-	QHash<QString, bool> checkCache;
-	QLinkedList<QString> checkCacheInsertion;
 	QStringList ignoredWordList;
 	QSet<QString> ignoredWords;
 	QStringListModel ignoredWordsModel;
+    QMutex mSpellerMutex;
 };
 
 

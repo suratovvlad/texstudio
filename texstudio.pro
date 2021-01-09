@@ -1,17 +1,69 @@
+#########################################################################################
+# pkgAtLeastVersion(widget_name, widget_version)
+# Custom test that checks if widget_name is installed and at least version widget_version
+#########################################################################################
+defineTest(pkgAtLeastVersion) {
+	# We do not use "pkg-config --atleast-version ..." because there is bug in
+	# Ubuntu 16.04 which causes the command to fail.
+	MOD_LINES = $$system($$pkgConfigExecutable() "--modversion " $$1, lines, exitCode)
+	if (!isEqual(exitCode, 0)) {
+		return (false)
+	}
+	if (isEmpty(MOD_LINES)) {
+		return (false)
+	}
+	if (versionGreaterOrEqual($$first(MOD_LINES), $$2)) {
+		return (true)
+	} else {
+		return (false)
+	}
+}
+
+###########################################################################################
+# versionGreaterOrEqual(VERSION_1, VERSION_2)
+# Custom test that compares two dot-separated versions and checks if VERSION_1 >= VERSION_2
+# versionAtLeast() is not supported before Qt 5.10, so we have a custom implementation of
+# this function.
+###########################################################################################
+defineTest(versionGreaterOrEqual) {
+	VER_1_SEGMENTS = $$split(1, ".")
+	VER_2_SEGMENTS = $$split(2, ".")
+	INDEX = 0
+	for(VER_2_ITEM, VER_2_SEGMENTS) {
+		VER_1_ITEM = $$member(VER_1_SEGMENTS, $$INDEX)
+		if(isEmpty(VER_1_ITEM)) {
+			VER_1_ITEM = 0
+		}
+		if (lessThan(VER_1_ITEM, $$VER_2_ITEM)) {
+			return(false)
+		}
+		if (greaterThan(VER_1_ITEM, $$VER_2_ITEM)) {
+			return(true)
+		}
+		INDEX = $$num_add($$INDEX, 1)
+	}
+	return(true)
+}
+
+####################
+# Start of main code
+####################
 TEMPLATE = app
 LANGUAGE = C++
 DESTDIR = ./
 DISTFILES = texstudio.astylerc
-greaterThan(QT_MAJOR_VERSION, 4) {
-    message(Building with Qt5)
-    CONFIG += qt
-    !win32: CONFIG -= precompile_header # precompiling does not work with Qt5 and mingw
-    win32: CONFIG -= precompile_header
+win32 {
+	!versionGreaterOrEqual($$QT_VERSION, "5.10.0") {
+		error(Windows builds require Qt version 5.10.0 or newer)
+	}
 } else {
-    message(Building with Qt4)
-    CONFIG += qt uitools
-    CONFIG -= precompile_header
+	!versionGreaterOrEqual($$QT_VERSION, "5.0.0") {
+		error(Non-Windows builds require Qt version 5.0.0 or newer)
+	}
 }
+message(Building with Qt $$QT_VERSION)
+CONFIG += qt
+CONFIG -= precompile_header
 
 # allow loading extra config by file for automatic compilations (OBS)
 exists(texstudio.pri):include(texstudio.pri)
@@ -21,26 +73,41 @@ QT += network \
     script \
     printsupport \
     concurrent
-greaterThan(QT_MAJOR_VERSION, 4) {
+
 QT += \
     widgets \
     uitools
-}
+
 !isEmpty(PHONON){
-    greaterThan(QT_MAJOR_VERSION, 4) { #Qt5
-        QT += phonon4qt5
-    } else { #Qt4
-        QT += phonon
-    }
+    QT += phonon4qt5
+    LIBS += -lphonon4qt5
     DEFINES += PHONON
 }
-contains($$list($$[QT_VERSION]), 4.3.*):message("qt 4.3.x")
-else:include(src/qtsingleapplication/qtsingleapplication.pri)
+
+isEmpty(INTERNAL_TERMINAL):pkgAtLeastVersion("qtermwidget5", "0.9.0") {
+    INTERNAL_TERMINAL=1
+    message(Use detected qterminal)
+}
+!isEmpty(INTERNAL_TERMINAL){
+    LIBS += -lqtermwidget5
+    DEFINES += INTERNAL_TERMINAL
+    message(Use qterminal)
+}
+
+!isEmpty(QJS){
+    DEFINES += QJS
+    QT += qml
+    QT -= script
+    message(Use experimental JS engine)
+}
+
+include(src/qtsingleapplication/qtsingleapplication.pri)
 
 # ##############################
 # precompile_header: PRECOMPILED_HEADER = mostQtHeaders.h
 # principal sources
 include(src/sources.pri)
+include(src/debug/debug.pri)
 
 RESOURCES += texstudio.qrc \
     symbols.qrc \
@@ -64,8 +131,10 @@ TRANSLATIONS += translation/texstudio_ar.ts \
     translation/texstudio_ko_KR.ts \
     translation/texstudio_nl.ts \
     translation/texstudio_pl.ts \
+    translation/texstudio_pt.ts \
     translation/texstudio_pt_BR.ts \
     translation/texstudio_ru_RU.ts \
+    translation/texstudio_sk.ts \
     translation/texstudio_sv.ts \
     translation/texstudio_tr_TR.ts \
     translation/texstudio_uk.ts \
@@ -88,7 +157,7 @@ macx {
     # QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
     target.path = /Applications
     manual.path = Contents/Resources/
-    utilities.path = Contents/Resources/ 
+    utilities.path = Contents/Resources/
     QMAKE_BUNDLE_DATA += utilities manual
     ICON = texstudio.icns
     QMAKE_INFO_PLIST = Info.plist
@@ -113,11 +182,11 @@ unix:!macx {
     icon.path = $${DATADIR}/icons/hicolor/scalable/apps
     icon.files = utilities/texstudio.svg
     isEmpty(NO_APPDATA) {
-        appdata.path = $${DATADIR}/appdata
+        appdata.path = $${DATADIR}/metainfo
         appdata.files = utilities/texstudio.appdata.xml
         INSTALLS += appdata
     }
-    INSTALLS += applicationmenu 
+    INSTALLS += applicationmenu
     INSTALLS += icon
     include(src/xkb/xkb.pri)
 }
@@ -138,15 +207,17 @@ unix {
         translation/texstudio_fa.qm \
         translation/texstudio_fr.qm \
         translation/texstudio_hu.qm \
-	translation/texstudio_id_ID.qm \
+        translation/texstudio_id_ID.qm \
         translation/texstudio_it.qm \
         translation/texstudio_ja.qm \
         translation/texstudio_ko.qm \
         translation/texstudio_ko_KR.qm \
         translation/texstudio_nl.qm \
         translation/texstudio_pl.qm \
+        translation/texstudio_pt.qm \
         translation/texstudio_pt_BR.qm \
         translation/texstudio_ru_RU.qm \
+        translation/texstudio_sk.qm \
         translation/texstudio_sv.qm \
         translation/texstudio_tr_TR.qm \
         translation/texstudio_uk.qm \
@@ -217,6 +288,8 @@ unix {
         utilities/dictionaries/fr_FR.dic \
         utilities/dictionaries/hu_HU.aff \
         utilities/dictionaries/hu_HU.dic \
+        utilities/dictionaries/it_IT.aff \
+        utilities/dictionaries/it_IT.dic \
         utilities/dictionaries/pt_BR.aff \
         utilities/dictionaries/pt_BR.dic \
         utilities/dictionaries/de_DE.badWords \
@@ -227,6 +300,7 @@ unix {
         utilities/dictionaries/fr_FR.stopWords \
         utilities/dictionaries/th_en_US_v2.dat \
         utilities/dictionaries/th_fr_FR_v2.dat \
+        utilities/dictionaries/th_it_IT_v2.dat \
         utilities/dictionaries/th_de_DE_v2.dat \
         utilities/AUTHORS \
         utilities/COPYING \
@@ -255,6 +329,7 @@ unix {
         utilities/manual/doc8.png \
         utilities/manual/doc9.png \
         utilities/manual/configure_completion.png \
+        utilities/manual/configure_commands.png \
         utilities/manual/configure_customizeMenu.png \
         utilities/manual/configure_customToolbar.png \
         utilities/manual/configure_editor.png \
@@ -267,19 +342,19 @@ unix {
         utilities/manual/thesaurus.png \
         utilities/manual/wizard_figure.png \
         utilities/manual/block_selection.png \
-        utilities/manual/spellcheck_menu.png
+        utilities/manual/spellcheck_menu.png \
+        utilities/manual/spellcheck_options.png \
+        utilities/manual/format_example.png
     INSTALLS += target \
         manual \
         utilities
 }
-
 isEmpty(USE_SYSTEM_HUNSPELL){
-  DEFINES += HUNSPELL_STATIC
-  include(src/hunspell/hunspell.pri)
-} else {
-  message(System hunspell)
-  CONFIG += link_pkgconfig
-  PKGCONFIG += hunspell
+    include(src/hunspell/hunspell.pri)
+}else{
+    message(System hunspell)
+    CONFIG += link_pkgconfig
+    PKGCONFIG += hunspell
 }
 
 include(src/qcodeedit/qcodeedit.pri)
@@ -289,97 +364,31 @@ include(src/latexparser/latexparser.pri)
 include(src/symbolpanel/symbolpanel.pri)
 
 isEmpty(USE_SYSTEM_QUAZIP) {
-  DEFINES += QUAZIP_STATIC
-  include(src/quazip/quazip/quazip.pri)
+    include(src/quazip/quazip/quazip.pri)
 } else {
-  greaterThan(QT_MAJOR_VERSION, 4) { #Qt5
-    message(System quazip5)
-    isEmpty(QUAZIP_LIB): QUAZIP_LIB = -lquazip5
-    isEmpty(QUAZIP_INCLUDE): QUAZIP_INCLUDE = $${PREFIX}/include/quazip5
-  } else { #Qt4
-    message(System quazip)
-    isEmpty(QUAZIP_LIB): QUAZIP_LIB = -lquazip
-    isEmpty(QUAZIP_INCLUDE): QUAZIP_INCLUDE = $${PREFIX}/include/quazip
-  }
-  INCLUDEPATH += $${QUAZIP_INCLUDE}
-  LIBS += $${QUAZIP_LIB}
+        message(System quazip5)
+        isEmpty(QUAZIP_LIB): QUAZIP_LIB = -lquazip5
+        isEmpty(QUAZIP_INCLUDE): QUAZIP_INCLUDE = $${PREFIX}/include/quazip5
+        INCLUDEPATH += $${QUAZIP_INCLUDE}
+        LIBS += $${QUAZIP_LIB}
 }
 
 include(src/pdfviewer/pdfviewer.pri)
+
+include(src/adwaita-qt/adwaita.pri)
 
 # ###############################
 
 CONFIG(debug, debug|release) {
     message(Creating debug version)
-    CONFIG -= release
-    QT += testlib
-
-    SOURCES += \
-        src/tests/codesnippet_t.cpp \
-        src/tests/encoding_t.cpp \
-        src/tests/latexcompleter_t.cpp \
-        src/tests/latexeditorview_bm.cpp \
-        src/tests/latexeditorview_t.cpp \
-        src/tests/latexoutputfilter_t.cpp \
-        src/tests/latexparser_t.cpp \
-        src/tests/latexparsing_t.cpp \
-        src/tests/qcetestutil.cpp \
-        src/tests/qdocumentcursor_t.cpp \
-        src/tests/qdocumentline_t.cpp \
-        src/tests/qdocumentsearch_t.cpp \
-        src/tests/qeditor_t.cpp \
-        src/tests/qsearchreplacepanel_t.cpp \
-        src/tests/scriptengine_t.cpp \
-        src/tests/smallUsefulFunctions_t.cpp \
-        src/tests/structureview_t.cpp \
-        src/tests/syntaxcheck_t.cpp \
-        src/tests/tablemanipulation_t.cpp \
-	src/tests/usermacro_t.cpp \
-        src/tests/testmanager.cpp \
-        src/tests/testutil.cpp
-    HEADERS += \
-        src/tests/qsearchreplacepanel_t.h \
-        src/tests/updatechecker_t.h \
-        src/tests/qdocumentcursor_t.h \
-        src/tests/qdocumentline_t.h \
-        src/tests/qdocumentsearch_t.h \
-        src/tests/codesnippet_t.h \
-        src/tests/latexcompleter_t.h \
-        src/tests/latexeditorview_bm.h \
-        src/tests/latexeditorview_t.h \
-        src/tests/latexoutputfilter_t.h \
-        src/tests/latexparser_t.h \
-        src/tests/latexparsing_t.h \
-        src/tests/latexstyleparser_t.h \
-        src/tests/scriptengine_t.h \
-        src/tests/qeditor_t.h \
-        src/tests/buildmanager_t.h \
-        src/tests/tablemanipulation_t.h \
-        src/tests/smallUsefulFunctions_t.h \
-        src/tests/utilsui_t.h \
-        src/tests/utilsversion_t.h \
-        src/tests/encoding_t.h \
-        src/tests/help_t.h \
-        src/tests/syntaxcheck_t.h \
-        src/tests/qcetestutil.h \
-        src/tests/testmanager.h \
-        src/tests/testutil.h \
-        src/tests/usermacro_t.h \
-        src/tests/structureview_t.h
-    !greaterThan(QT_MAJOR_VERSION, 4) {
-        win32:LIBS += -lQtTestd4
-    } else {
-        win32:LIBS += -lQt5Testd
-    }
-    #unix:!macx:LIBS += -lQtTest
-    macx:LIBS += -framework QtTest
+    CONFIG -= debug_and_release release
+} else {
+    message(Creating release version)
+    CONFIG -= debug_and_release debug
+    NO_TESTS = 1
 }
+
 macx:LIBS += -framework CoreFoundation
-
-unix {
-    LIBS += -L/usr/lib \
-    -lz
-}
 
 freebsd-* {
     LIBS += -lexecinfo
@@ -389,9 +398,10 @@ freebsd-* {
     DEFINES += NO_CRASH_HANDLER
     message("Internal crash handler disabled as you wish.")
 }
-!isEmpty(NO_TESTS) {
-    DEFINES += NO_TESTS
-    message("tests disabled as you wish.")
+include(src/tests/tests.pri)
+!isEmpty(DEBUG_LOGGER) {
+    DEFINES += DEBUG_LOGGER
+    message("Enabling debug logger.")
 }
 
 # add git revision
@@ -414,9 +424,11 @@ exists(./.git)  {
 }
 
 !win32-msvc*: {
-  QMAKE_CXXFLAGS_DEBUG += -Wall -Wextra -Winit-self -Wmissing-include-dirs -Wtrigraphs -Wunused -Wunknown-pragmas -Wundef -Wpointer-arith -Wwrite-strings -Wempty-body -Wsign-compare -Waddress -Winline
-  QMAKE_CXXFLAGS += -std=c++0x
-  !win32: QMAKE_LFLAGS += -rdynamic # option not supported by mingw
+  QMAKE_CXXFLAGS_DEBUG -= -O -O1 -O2 -O3
+  QMAKE_CXXFLAGS_DEBUG += -Wall -Wextra -Wmissing-include-dirs -Wunknown-pragmas -Wundef -Wpointer-arith -Winline -O0
+  QMAKE_CXXFLAGS += -std=c++11
+  !isEmpty(MXE): QMAKE_CXXFLAGS += -fpermissive
+  !win32:!haiku: QMAKE_LFLAGS += -rdynamic # option not supported by mingw and haiku
   else {
     QMAKE_CXXFLAGS += -gstabs -g
     QMAKE_LFLAGS -= -Wl,-s
@@ -424,6 +436,10 @@ exists(./.git)  {
   }
 } else {
   DEFINES += _CRT_SECURE_NO_WARNINGS
+}
+
+*-g++:equals(QT_MAJOR_VERSION, 5):lessThan(QT_MINOR_VERSION, 13) {
+  QMAKE_CXXFLAGS += -Wno-deprecated-copy
 }
 
 unix:!macx {

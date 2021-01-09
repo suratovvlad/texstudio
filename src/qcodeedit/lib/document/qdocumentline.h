@@ -74,6 +74,7 @@ class QCE_EXPORT QDocumentLine
             LEXER_REMAINDER_COOKIE = 5,
             LEXER_RAW_COOKIE = 6,
             LEXER_COMMANDSTACK_COOKIE = 7,
+            LEXER_COMMENTSTART_COOKIE = 8,
 			PICTURE_COOKIE = 42,
 			PICTURE_COOKIE_DRAWING_POS = 43,
 			GRAMMAR_ERROR_COOKIE = 44
@@ -183,7 +184,8 @@ class QCE_EXPORT QDocumentLine
 		void setFormats(const QVector<int>& formats);
 		QVector<int> compose();
 		QVector<int> getFormats();
-		int getFormatAt(int pos);
+        int getFormatAt(int pos) const;
+        int getCachedFormatAt(int pos) const;
 		
 		const QVector<QParenthesis>& parentheses() const;
 		void setParentheses(const QVector<QParenthesis>& parentheses);

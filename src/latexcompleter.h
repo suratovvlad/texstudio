@@ -18,17 +18,13 @@
 
 #include "qcodeedit.h"
 #include "qeditor.h"
-#include "latexeditorview.h"
 #include "directoryreader.h"
 #include "bibtexreader.h"
-
-//#include "qdocumentline_p.h"
-
 
 class CompletionListModel;
 class LatexCompleterConfig;
 class LatexReference;
-//class Reference;
+class LatexParser;
 
 /*!
  * \brief Implements the actual completer
@@ -54,7 +50,7 @@ public:
 						 CF_FORCE_REFLIST = 1024};
 	Q_DECLARE_FLAGS(CompletionFlags, CompletionFlag)
 
-	LatexCompleter(const LatexParser &latexParser, QObject *p = 0); ///< constructor
+    LatexCompleter(const LatexParser &latexParser, QObject *p = nullptr); ///< constructor
 	virtual ~LatexCompleter();
 
 	void complete(QEditor *newEditor, const CompletionFlags &flags); ///< initiate completion with given flags
@@ -94,6 +90,10 @@ signals:
 	void searchBibtexSection(QString file, QString bibId);
 	void showImagePreview(QString fn); ///< show preview of selected image
 	void showPreview(QString text); ///< show preview of selected item, usually references or citations
+
+public slots:
+
+    void bibtexSectionFound(QString content);
 
 private:
 	friend class CompleterInputBinding;
@@ -139,7 +139,6 @@ private slots:
 	void changeView(int pos);
 	void listClicked(QModelIndex index);
 	void directoryLoaded(QString dn, QSet<QString> content);
-	void bibtexSectionFound(QString content);
 };
 
 #endif

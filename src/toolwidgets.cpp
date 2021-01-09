@@ -4,6 +4,7 @@
 #include "smallUsefulFunctions.h"
 #include "utilsSystem.h"
 #include "configmanagerinterface.h"
+#include "terminal_config.h"
 
 void adjustScrollBar(QScrollBar *scrollBar, double factor)
 {
@@ -74,7 +75,7 @@ void PreviewWidget::fitImage(bool fit)
 		} else {
 			h = m_size.height();
 			w = qRound(m_size.height() / ratio);
-			pvscaleFactor = 1.0 * h / preViewer->pixmap()->size().height();;
+			pvscaleFactor = 1.0 * h / preViewer->pixmap()->size().height();
 		}
 		preViewer->resize(w, h);
 		//setWidgetResizable(true);
@@ -109,9 +110,9 @@ void PreviewWidget::resetZoom()
 
 void PreviewWidget::wheelEvent(QWheelEvent *event)
 {
-	if (!preViewer->pixmap()) return;
+    if (!preViewer->pixmap()) return;
 	if (event->modifiers() == Qt::ControlModifier) {
-		float numDegrees = event->delta() / 8.0f;
+        float numDegrees = event->angleDelta().y() / 8.0f;
 		float numSteps = numDegrees / 15.0f;
 		scaleImage(qPow(1.4, numSteps));
 		event->accept();
@@ -139,18 +140,110 @@ void PreviewWidget::contextMenu(QPoint point)
 	menu.exec(menuParent->mapToGlobal(point));
 }
 
-OutputViewWidget::OutputViewWidget(QWidget *parent) :
+#ifdef INTERNAL_TERMINAL
+TerminalWidget::TerminalWidget(QWidget *parent, InternalTerminalConfig *terminalConfig):
+  QWidget(parent), qTermWidget(nullptr), terminalConfig(terminalConfig)
+{
+	//setBackgroundRole(QPalette::Base);
+	layout = new QHBoxLayout(this);
+	layout->setSpacing(0);
+	layout->setMargin(0);
+	setLayout(layout);
+	installEventFilter(this);
+}
+
+TerminalWidget::~TerminalWidget()
+{
+	if (qTermWidget) delete qTermWidget;
+	delete layout;
+}
+
+/*
+ * Overrides QShortcuts snitching these key combos
+ * in case the TerminalWidget has focus.
+ */
+bool TerminalWidget::eventFilter(QObject *watched, QEvent *event)
+{
+	if (event->type() == QEvent::ShortcutOverride) {
+		QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+		if (keyEvent->modifiers().testFlag(Qt::ControlModifier)
+			&& ( (keyEvent->key() == 'C')
+			|| (keyEvent->key() == 'D')
+			|| (keyEvent->key() == 'L')
+			|| (keyEvent->key() == 'X')
+			|| (keyEvent->key() == 'Y')
+			|| (keyEvent->key() == 'V') ) ) {
+			event->accept();
+			return true;
+		}
+	}
+	return QWidget::eventFilter(watched, event);
+}
+
+void TerminalWidget::showEvent(QShowEvent *){
+	if (!qTermWidget) initQTermWidget();
+}
+
+void TerminalWidget::qTermWidgetFinished()
+{
+	// in case the shell closed the widget is reinitiated
+	delete qTermWidget;
+	qTermWidget = nullptr; // Prevent double-delete of terminal widget
+	initQTermWidget();
+}
+
+void TerminalWidget::initQTermWidget()
+{
+	if (qTermWidget) delete qTermWidget;
+	qTermWidget = new QTermWidget(0, this);
+	curShell = terminalConfig->terminalShell;
+	qTermWidget->setShellProgram(curShell);
+	qTermWidget->setTerminalSizeHint(false);
+	qTermWidget->startShellProgram();
+	layout->addWidget(qTermWidget,0);
+	connect( qTermWidget, SIGNAL( finished( ) ), this, SLOT( qTermWidgetFinished( ) ) );
+	updateSettings(true);
+}
+
+void TerminalWidget::setCurrentFileName(const QString &filename)
+{
+	QString const &path = filename.left(filename.lastIndexOf('/'));
+	if(qTermWidget && qTermWidget->workingDirectory() != path )
+		qTermWidget->changeDir(path);
+}
+
+void TerminalWidget::updateSettings(bool noreset)
+{
+	if (!noreset) {
+		QString const &shell = terminalConfig->terminalShell;
+		if (shell != curShell) {
+			initQTermWidget();
+			return;
+		}
+	}
+
+	QString const &colorScheme = terminalConfig->terminalColorScheme;
+	QString const &fontFamily = terminalConfig->terminalFontFamily;
+	int fontSize = terminalConfig->terminalFontSize;
+	if (qTermWidget) {
+		qTermWidget->setColorScheme(colorScheme);
+		qTermWidget->setTerminalFont( QFont( fontFamily, fontSize ) );
+	}
+}
+#endif
+
+OutputViewWidget::OutputViewWidget(QWidget *parent, InternalTerminalConfig *terminalConfig) :
 	TitledPanel(parent),
 	MESSAGES_PAGE("messages"),
 	LOG_PAGE("log"),
 	PREVIEW_PAGE("preview"),
+	TERMINAL_PAGE("terminal"),
 	SEARCH_RESULT_PAGE("search")
 {
 	setSelectorStyle(TabSelector);
 	mToggleViewAction->setText(tr("Messages / Log File"));
 	mToggleViewAction->setIcon(getRealIcon("logpanel"));
 	setFrameStyle(NoFrame);
-
 
 	// messages
 	QFontMetrics fm(QApplication::font());
@@ -172,8 +265,12 @@ OutputViewWidget::OutputViewWidget(QWidget *parent) :
 	previewWidget = new PreviewWidget(this);
 	appendPage(new TitledPanelPage(previewWidget, PREVIEW_PAGE, tr("Preview")), false);
 
-	// global search results
+#ifdef INTERNAL_TERMINAL
+	terminalWidget = new TerminalWidget(this, terminalConfig);
+	appendPage(new TitledPanelPage(terminalWidget, TERMINAL_PAGE, tr("Terminal")), false);
+#endif
 
+	// global search results
 	searchResultWidget = new SearchResultWidget(this);
 
 	//appendPage(new TitledPanelPage(OutputSearchTree, SEARCH_RESULT_PAGE, tr("Search Results")));
@@ -285,6 +382,7 @@ CustomWidgetList::CustomWidgetList(QWidget *parent):
 	toolbar->setFloatable(false);
 	toolbar->setOrientation(Qt::Vertical);
 	toolbar->setMovable(false);
+
 	hlayout->addWidget(toolbar);
 
 	stack = new QStackedWidget(this);
@@ -370,7 +468,11 @@ void CustomWidgetList::customContextMenuRequested(const QPoint &localPosition)
 
 void CustomWidgetList::showWidgets()
 {
-	setToolbarIconSize(ConfigManagerInterface::getInstance()->getOption("GUI/SecondaryToobarIconSize").toInt());
+    // adapt icon size to dpi
+    double dpi=QGuiApplication::primaryScreen()->logicalDotsPerInch();
+    double scale=dpi/96;
+
+    setToolbarIconSize(qRound(ConfigManagerInterface::getInstance()->getOption("GUI/SecondaryToobarIconSize").toInt()*scale));
 
 	// TODO: is this still needed when there is no need to switch between old and new style
 	for (int i = 0; i < widgets.count(); i++) {

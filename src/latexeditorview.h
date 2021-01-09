@@ -11,6 +11,7 @@
 
 #ifndef LATEXEDITORVIEW_H
 #define LATEXEDITORVIEW_H
+
 #include "mostQtHeaders.h"
 #include "qdocument.h"
 #include "syntaxcheck.h"
@@ -18,6 +19,7 @@
 #include "bibtexreader.h"
 #include "cursorposition.h"
 #include "latexcompleter.h"
+#include "help.h"
 class QDocumentLineHandle;
 
 class LatexDocument;
@@ -41,7 +43,7 @@ class MacroExecContext;
  *
  */
 struct LinkOverlay {
-	enum LinkOverlayType {Invalid, RefOverlay, FileOverlay, UrlOverlay, UsepackageOverlay, BibFileOverlay, CiteOverlay};
+	enum LinkOverlayType {Invalid, RefOverlay, FileOverlay, UrlOverlay, UsepackageOverlay, BibFileOverlay, CiteOverlay, CommandOverlay, EnvOverlay};
 	// for simpler access everything is public - only access for reading
 	LinkOverlayType type;
 	QDocumentLine docLine;
@@ -49,12 +51,13 @@ struct LinkOverlay {
 
 	LinkOverlay() : type(Invalid) {}
 	LinkOverlay(const LinkOverlay &o);
-	LinkOverlay(const QDocumentCursor &cur, LinkOverlayType ltype);
+	LinkOverlay(const Token &token, LinkOverlayType ltype);
 
 	bool isValid() const
 	{
 		return type != Invalid;
 	}
+	LinkOverlay & operator= (const LinkOverlay &) = default;	// Avoid GCC9 -Wdeprecated-copy warning
 	bool operator ==(const LinkOverlay &o) const
 	{
 		return (docLine == o.docLine) && (formatRange == o.formatRange);
@@ -69,7 +72,7 @@ class LatexEditorView : public QWidget
 	Q_OBJECT
 
 public:
-	LatexEditorView(QWidget *parent, LatexEditorViewConfig *aconfig, LatexDocument *doc = 0);
+    LatexEditorView(QWidget *parent, LatexEditorViewConfig *aconfig, LatexDocument *doc = nullptr);
 	~LatexEditorView();
 
 	QCodeEdit *codeeditor;
@@ -84,8 +87,8 @@ public:
 		return editor;
 	}
 	LatexDocument *getDocument() const { return document; }
-	Q_PROPERTY(QEditor *editor READ getEditor);
-	Q_PROPERTY(LatexDocument *document READ getDocument);     //<- semicolon necessary due to qt bug 22992
+    Q_PROPERTY(QEditor *editor READ getEditor);
+    Q_PROPERTY(LatexDocument *document READ getDocument);    //<- semicolon necessary due to qt bug 22992
 
 	LatexEditorViewConfig *getConfig() { return config; }
 
@@ -97,13 +100,14 @@ public:
 
     Q_INVOKABLE void complete(int flags); ///< complete text
 	bool gotoLineHandleAndSearchCommand(const QDocumentLineHandle *dlh, const QSet<QString> &searchFor, const QString &id);
-	Q_INVOKABLE bool gotoToLabel(const QString &label);
-	Q_INVOKABLE bool gotoToBibItem(const QString &bibId);
+	bool gotoLineHandleAndSearchString(const QDocumentLineHandle *dlh, const QString &str);
+	bool gotoLineHandleAndSearchLabel(const QDocumentLineHandle *dlh, const QString &label);
+	bool gotoLineHandleAndSearchBibItem(const QDocumentLineHandle *dlh, const QString &bibId);
 
 	static QList<QAction *> getBaseActions();
 	static void setBaseActions(QList<QAction *> baseActions);
 	void setSpellerManager(SpellerManager *manager);
-	bool setSpeller(const QString &name);
+    bool setSpeller(const QString &name,bool updateComment=false);
 	Q_INVOKABLE QString getSpeller();
 
 	static void setCompleter(LatexCompleter *newCompleter);
@@ -138,6 +142,7 @@ public:
 	Q_INVOKABLE void addBookmark(int lineNr, int bookmarkNumber);
 	Q_INVOKABLE bool hasBookmark(int lineNr, int bookmarkNumber);
 	bool hasBookmark(QDocumentLineHandle *dlh, int bookmarkNumber);
+    int hasBookmark(QDocumentLineHandle *dlh);
 
 	QList<QDocumentCursor> autoPreviewCursor;
 
@@ -159,6 +164,15 @@ public:
 
 	void updateReplamentList(const LatexParser &cmds, bool forceUpdate = false);
 
+    void updatePalette(const QPalette & pal);
+
+    void setHelp(Help *obj){
+        help=obj;
+    };
+    Help* getHelp(){
+        return help;
+    }
+
 private:
 	QAction *lineNumberPanelAction, *lineMarkPanelAction, *lineFoldPanelAction, *lineChangePanelAction,
 	        *statusPanelAction, *searchReplacePanelAction, *gotoLinePanelAction;
@@ -169,6 +183,8 @@ private:
 	QStatusPanel *statusPanel;
 
 	QPoint m_point;
+
+    QDocumentCursor wordSelection;
 
 	static int environmentFormat, referencePresentFormat, referenceMissingFormat, referenceMultipleFormat, citationMissingFormat, citationPresentFormat, structureFormat, todoFormat,
 	       packagePresentFormat, packageMissingFormat, packageUndefinedFormat,
@@ -202,6 +218,8 @@ private:
 	QList<QPair<QDocumentLine, QFormatRange> > tempHighlightQueue;
 
 	QMap<QString, QString> mReplacementList;
+
+    Help *help;
 
 private slots:
 	void requestCitation(); //emits needCitation with selected text
@@ -238,9 +256,10 @@ public slots:
 
     void mayNeedToOpenCompleter(bool fromSingleChar=false);
 	void documentContentChanged(int linenr, int count);
+    void reCheckSyntax(int linenr, int count=-1);
 
 private slots:
-	void lineDeleted(QDocumentLineHandle *l);
+    void lineDeleted(QDocumentLineHandle *l,int hint=-1);
 	void textReplaceFromAction();
 	void spellCheckingAlwaysIgnore();
 	void populateSpellingMenu();
@@ -252,6 +271,10 @@ public slots:
 	void mouseHovered(QPoint pos);
 	bool closeElement();
 	void insertHardLineBreaks(int newLength, bool smartScopeSelection, bool joinLines);
+public:
+	enum LineSorting {SortAscending = 0, SortDescending, SortNone, SortRandomShuffle};
+public slots:
+	void sortSelectedLines(LineSorting sorting, Qt::CaseSensitivity caseSensitivity, bool completeLines, bool removeDuplicates);
 	void viewActivated();
 	void clearOverlays();
 	void paste();
@@ -274,6 +297,7 @@ private:
 	QString extractMath(QDocumentCursor cursor);
 	bool moveToCommandStart (QDocumentCursor &cursor, QString commandPrefix);
 	bool showMathEnvPreview(QDocumentCursor cursor, QString command, QString environment, QPoint pos);
+    QString findEnclosedMathText(QDocumentCursor cursor, QString command);
 
 public slots:
 	void temporaryHighlight(QDocumentCursor cur);
@@ -298,6 +322,7 @@ signals:
 	void showPreview(const QString &text);
 	void showPreview(const QDocumentCursor &c);
 	void showImgPreview(const QString &fileName);
+	void showFullPreview();
 	void openFile(const QString &name);
 	void openFile(const QString &baseName, const QString &defaultExtension);
 	void openCompleter();

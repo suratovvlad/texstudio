@@ -46,6 +46,8 @@
 #include "kpathseaParser.h"
 #include "diffoperations.h"
 #include "svn.h"
+#include "git.h"
+#include "help.h"
 
 #include <QProgressDialog>
 
@@ -69,7 +71,7 @@ class Texstudio : public QMainWindow
 	Q_OBJECT
 
 public:
-    Texstudio(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr, QSplashScreen *splash = nullptr);
+    Texstudio(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags(), QSplashScreen *splash = nullptr);
 	~Texstudio();
 
 	Q_INVOKABLE QString getCurrentFileName(); ///< returns the absolute file name of the current file or "" if none is opene
@@ -86,9 +88,9 @@ public slots:
 	void hideSplash(); ///< hide splash screen
 	void startupCompleted();
 	void onOtherInstanceMessage(const QString &);  ///< For messages for the single instance
-
 	void fuzzCursorHistory();
 	void fuzzBackForward();
+    void setBuildButtonsDisabled(bool c);
 
 
 protected:
@@ -106,6 +108,7 @@ protected:
     Q_INVOKABLE QAction *insertManagedAction(QAction *before, const QString &id, const QString &text, const char *slotName = nullptr, const QKeySequence &shortCut = 0, const QString &iconFile = "");
 
 	void addTagList(const QString &id, const QString &iconName, const QString &text, const QString &tagFile);
+    void addMacrosAsTagList();
 
 private slots:
 	void updateToolBarMenu(const QString &menuName);
@@ -119,7 +122,7 @@ private:
 	void createStatusBar();
 	bool activateEditorForFile(QString f, bool checkTemporaryNames = false, bool setFocus = true);
 	bool saveAllFilesForClosing(); ///< checks for unsaved files and asks the user if they should be saved
-	bool saveFilesForClosing(const QList<LatexEditorView *> &editorList); ///< checks for unsaved files and asks the user if they should be saved
+    bool saveFilesForClosing(const QList<LatexDocument *> &documentList); ///< checks for unsaved files and asks the user if they should be saved
 	void closeAllFiles();
 	bool canCloseNow(bool saveSettings = true); ///< asks the user and close all files, and prepares to exit txs
 	void closeEvent(QCloseEvent *e);
@@ -153,6 +156,8 @@ private:
 	LatexParser latexParser;
 public:
 	LatexDocuments documents;
+
+    Q_INVOKABLE bool completerIsVisible();
 private:
 	OutputViewWidget *outputView; ///< contains output widgets (over OutputLayout)
 
@@ -187,6 +192,8 @@ private:
 
 	SpellerManager spellerManager;
 	SVN svn;
+    GIT git;
+    Help help;
 	SafeThread grammarCheckThread;
 	GrammarCheck *grammarCheck;
 	Bookmarks *bookmarks;
@@ -201,10 +208,12 @@ private:
 	void configureNewEditorView(LatexEditorView *edit);
 	void configureNewEditorViewEnd(LatexEditorView *edit, bool asMaster = false, bool hidden = false);
 	LatexEditorView *getEditorViewFromFileName(const QString &fileName, bool checkTemporaryNames = false);
+	LatexEditorView *getEditorViewFromHandle(const QDocumentLineHandle *dlh);
 
 	QAction *fullscreenModeAction;
 
 	int runningPDFCommands, runningPDFAsyncCommands;
+	QEditor *previewEditorPending; bool previewIsAutoCompiling;
 
 	void updateUserToolMenu();
 	void linkToEditorSlot(QAction *act, const char *slot, const QList<QVariant> &args);
@@ -223,6 +232,7 @@ protected slots:
 	void fileRestoreSession(bool showProgress = true, bool warnMissing = true);
 	void fileSave(const bool saveSilently = false);
 	void fileSaveAll();
+    void fileSaveAllFromTimer();
 	void fileSaveAll(bool alsoUnnamedFiles, bool alwaysCurrentFile);
 	void fileSaveAs(const QString &fileName = "") { fileSaveAs(fileName, false); }
 private slots:
@@ -270,7 +280,7 @@ private slots:
 	void svnPatch(QEditor *ed, QString diff);
 	void showOldRevisions();
 	void changeToRevision(QString rev, QString old_rev = "");
-	void svnDialogClosed();
+    void svnDialogClosed(int);
 	void fileDiff();
 	void fileDiff3();
 	bool checkSVNConflicted(bool substituteContents = true);
@@ -304,6 +314,7 @@ protected slots:
 	void editMoveLineUp();
 	void editMoveLineDown();
 	void editDuplicateLine();
+	void editSortLines();
 	void editAlignMirrors();
 	void editEraseWordCmdEnv();
 	void editGotoDefinition(QDocumentCursor c = QDocumentCursor());
@@ -324,6 +335,8 @@ protected slots:
 	void addDocToLoad(QString filename);
 
 	void LTErrorMessage(QString message);
+
+    void paletteChanged(const QPalette &palette);
 
 private slots:
 	void readSettings(bool reread = false); ///< read configured/default settings from ini
@@ -366,6 +379,7 @@ protected slots:
 	void insertXmlTagFromToolButtonAction();
 	void callToolButtonAction();
 	void insertFromAction();
+    void insertFromTagList(QListWidgetItem *item);
 	void insertBib();
 	void closeEnvironment();
 
@@ -410,11 +424,13 @@ protected slots:
 	bool checkProgramPermission(const QString &program, const QString &cmdId, LatexDocument *master);
 	void runInternalPdfViewer(const QFileInfo &master, const QString &options);
 	void runBibliographyIfNecessary(const QFileInfo &cmd);
+	QDateTime GetBblLastModified(void);
 
 	void showExtendedSearch();
 
 	void changeIconSize(int value);
 	void changeSecondaryIconSize(int value);
+    void changePDFIconSize(int value);
 	void changeSymbolGridIconSize(int value, bool changePanel = true);
 
 public slots:
@@ -428,13 +444,14 @@ private slots:
 	void endRunningCommand(const QString &commandMain, bool latex, bool pdf, bool async);
 
 
-    bool runCommand(const QString &commandline, QString *buffer = nullptr, QTextCodec *codecForBuffer = nullptr);
+    bool runCommand(const QString &commandline, QString *buffer = nullptr, QTextCodec *codecForBuffer = nullptr, bool saveAll=true);
     bool runCommandNoSpecialChars(QString commandline, QString *buffer = nullptr, QTextCodec *codecForBuffer = nullptr);
 	void setStatusMessageProcess(const QString &message);
+    bool runCommandAsync(const QString &commandline, const char *returnCMD);
 protected slots:
 	void processNotification(const QString &message);
     void clearLogs();
-	void openTerminal(); ///< open external terminal
+	void openExternalTerminal(void); ///< open external terminal
 	void cleanAll();
 	void commandFromAction();  ///< calls a command given by sender.data, doesn't wait
 
@@ -487,9 +504,10 @@ protected slots:
 	void viewCollapseBlock();
 	void viewExpandBlock();
 
+#ifndef NO_POPPLER_PREVIEW
 	QObject *newPdfPreviewer(bool embedded = false);
+#endif
 	void pdfClosed();
-	void restoreMacMenuBar();
 
 	void masterDocumentChanged(LatexDocument *doc);
 	void aboutToDeleteDocument(LatexDocument *doc);
@@ -526,6 +544,8 @@ protected slots:
 	void showPreviewQueue();
 	void showImgPreview(const QString &fname);
 	void showImgPreviewFinished(const QPixmap &pm, int page);
+	void recompileForPreview();
+	void recompileForPreviewNow();
 
 	void templateEdit(const QString &fname);
 
@@ -561,7 +581,6 @@ protected slots:
 
 	void updateTexQNFA();
 	void updateTexLikeQNFA(QString languageName, QString filename);
-	void updateHighlighting();
 
 	void toggleGrammar(int type);
 
@@ -581,7 +600,7 @@ protected:
 #ifdef Q_OS_WIN
     bool eventFilter(QObject *obj, QEvent *event);
 #endif
-#if (QT_VERSION > 0x050000) && (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
+#if (QT_VERSION <= 0x050700) && (defined(Q_OS_MAC))
 	bool eventFilter(QObject *obj, QEvent *event);
 #endif
 
@@ -599,7 +618,7 @@ protected:
 
 	QStringList m_columnCutBuffer;
 
-    QTimer autosaveTimer,previewDelayTimer;
+	QTimer autosaveTimer,previewDelayTimer,previewFullCompileDelayTimer;
 
 	bool completionBaseCommandsUpdated;
 
@@ -629,8 +648,6 @@ protected:
 	bool recheckLabels;
 
     bool rememberFollowFromScroll,enlargedViewer;
-
-	LatexEditorView *editorViewForLabel(LatexDocument *doc, const QString &label);
 
 	QSet<QString> latexPackageList, currentPackageList;
 

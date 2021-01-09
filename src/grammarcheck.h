@@ -4,6 +4,7 @@
 #include "mostQtHeaders.h"
 
 #include "latexparser/latexparser.h"
+#include "configmanagerinterface.h"
 //TODO: move this away
 #include "grammarcheck_config.h"
 
@@ -56,11 +57,13 @@ class GrammarCheck : public QObject
 	Q_OBJECT
 
 public:
-	explicit GrammarCheck(QObject *parent = 0);
+    explicit GrammarCheck(QObject *parent = nullptr);
 	~GrammarCheck();
 	enum LTStatus {LTS_Unknown, LTS_Working, LTS_Error};
 	LTStatus languageToolStatus() { return ltstatus; }
 	QString serverUrl();
+    QString getLastErrorMessage();
+
 signals:
 	void checked(const void *doc, const void *line, int lineNr, QList<GrammarError> errors);
 	void languageToolStatusChanged();
@@ -103,8 +106,9 @@ public:
 	virtual bool isAvailable() = 0;
     virtual bool isWorking() = 0;
 	virtual QString url() = 0;
-	virtual void check(uint ticket, int subticket, const QString &language, const QString &text) = 0;
+    virtual void check(uint ticket, uint subticket, const QString &language, const QString &text) = 0;
 	virtual void shutdown() = 0;
+    virtual QString getLastErrorMessage() = 0;
 signals:
 	void checked(uint ticket, int subticket, const QList<GrammarError> &errors);
     void languageToolStatusChanged();
@@ -113,64 +117,29 @@ signals:
 
 class QNetworkAccessManager;
 class QNetworkReply;
-class GrammarCheckLanguageToolSOAP: public GrammarCheckBackend
-{
-	Q_OBJECT
 
-public:
-	GrammarCheckLanguageToolSOAP(QObject *parent = 0);
-	~GrammarCheckLanguageToolSOAP();
-	virtual void init(const GrammarCheckerConfig &config);
-	virtual bool isAvailable();
-    virtual bool isWorking();
-	virtual QString url();
-	virtual void check(uint ticket, int subticket, const QString &language, const QString &text);
-	virtual void shutdown();
-private slots:
-	void finished(QNetworkReply *reply);
-private:
-	QNetworkAccessManager *nam;
-	QUrl server;
 
-	enum Availability {Terminated = -2, Broken = -1, Unknown = 0, WorkedAtLeastOnce = 1};
-	Availability connectionAvailability;
-
-	bool triedToStart;
-	bool firstRequest;
-	QPointer<QProcess> javaProcess;
-
-	QString ltPath, javaPath, ltArguments;
-	QSet<QString> ignoredRules;
-	QList<QSet<QString> >  specialRules;
-	uint startTime;
-	void tryToStart();
-
-	QList<CheckRequestBackend> delayedRequests;
-
-	QSet<QString> languagesCodesFail;
-};
-
-#if QT_VERSION >= 0x050000
 class GrammarCheckLanguageToolJSON: public GrammarCheckBackend
 {
     Q_OBJECT
 
 public:
-    GrammarCheckLanguageToolJSON(QObject *parent = 0);
+    GrammarCheckLanguageToolJSON(QObject *parent = nullptr);
     ~GrammarCheckLanguageToolJSON();
     virtual void init(const GrammarCheckerConfig &config);
     virtual bool isAvailable();
     virtual bool isWorking();
     virtual QString url();
-    virtual void check(uint ticket, int subticket, const QString &language, const QString &text);
+    virtual void check(uint ticket, uint subticket, const QString &language, const QString &text);
     virtual void shutdown();
+    virtual QString getLastErrorMessage();
 private slots:
     void finished(QNetworkReply *reply);
 private:
     QNetworkAccessManager *nam;
     QUrl server;
 
-    enum Availability {Terminated = -2, Broken = -1, Unknown = 0, WorkedAtLeastOnce = 1};
+    enum Availability {Terminated , Broken , Unknown , WorkedAtLeastOnce };
     Availability connectionAvailability;
 
     bool triedToStart;
@@ -186,7 +155,7 @@ private:
     QList<CheckRequestBackend> delayedRequests;
 
     QSet<QString> languagesCodesFail;
+    QString errorText; // last error message
 };
-#endif
 
 #endif // GRAMMARCHECK_H

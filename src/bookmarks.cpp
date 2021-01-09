@@ -41,7 +41,7 @@ QStringList Bookmark::toStringList() const
 
 
 Bookmarks::Bookmarks(const LatexDocuments *docs, QObject *parent) :
-	QObject(parent)
+    QObject(parent),m_darkMode(false)
 {
 	documents = docs;
 	initializeWidget();
@@ -92,7 +92,7 @@ void Bookmarks::setBookmarks(const QList<Bookmark> &bookmarkList)
 		LatexDocument *doc = documents->findDocumentFromName(bm.filename);
 		if (doc &&  bm.lineNumber < doc->lineCount() &&  bm.lineNumber >= 0) {
 			QDocumentLineHandle *dlh = doc->line( bm.lineNumber).handle();
-			item->setData(DocLineHandle, qVariantFromValue(dlh));
+            item->setData(DocLineHandle, QVariant::fromValue(dlh));
 		} else {
 			item->setData(DocLineHandle, 0);
 		}
@@ -148,7 +148,7 @@ void Bookmarks::bookmarkAdded(QDocumentLineHandle *dlh, int nr)
 	QListWidgetItem *item = new QListWidgetItem(text, bookmarksWidget);
 	item->setData(FileName, doc->getFileName());
 	item->setData(LineNr, doc->indexOf(dlh));
-	item->setData(DocLineHandle, qVariantFromValue(dlh));
+    item->setData(DocLineHandle, QVariant::fromValue(dlh));
 	item->setData(BookmarkNr, nr);
 	int lineNr = doc->indexOf(dlh);
 	lineNr = lineNr > 1 ? lineNr - 2 : 0;
@@ -197,7 +197,7 @@ void Bookmarks::restoreBookmarks(LatexEditorView *edView)
 		QDocumentLineHandle *dlh = doc->line(lineNr).handle();
 		if (!dlh)
 			continue;
-		item->setData(DocLineHandle, qVariantFromValue(dlh));
+        item->setData(DocLineHandle, QVariant::fromValue(dlh));
 		item->text() = dlh->text();
 		item->setToolTip(doc->exportAsHtml(doc->cursor(lineNr, 0, lineNr + 4), true, true, 60));
 	}
@@ -225,7 +225,30 @@ void Bookmarks::updateBookmarks(LatexEditorView *edView)
             item->setData(LineNr, lineNr);
             item->setData(DocLineHandle, 0);
         }
-	}
+    }
+}
+
+void Bookmarks::setDarkMode(bool mode)
+{
+    m_darkMode=mode;
+    if(mode){
+        bookmarksWidget->setStyleSheet(
+            "QListWidget {alternate-background-color: #202040;}"
+            "QListWidget::item {"
+            "padding: 4px;"
+            "border-bottom: 1px solid palette(dark); }"
+            "QListWidget::item:selected {"
+            "color: palette(highlighted-text);"
+            "background-color: palette(highlight); }");
+    }else{
+        bookmarksWidget->setStyleSheet(
+            "QListWidget::item {"
+            "padding: 4px;"
+            "border-bottom: 1px solid palette(dark); }"
+            "QListWidget::item:selected {"
+            "color: palette(highlighted-text);"
+            "background-color: palette(highlight); }");
+    }
 }
 
 
@@ -248,7 +271,7 @@ void Bookmarks::clickedOnBookmark(QListWidgetItem *item)
     int ln=doc->indexOf(dlh);
     if (ln < 0) {
 		dlh = doc->line(lineNr).handle();
-		item->setData(DocLineHandle, qVariantFromValue(dlh));
+        item->setData(DocLineHandle, QVariant::fromValue(dlh));
     }else{ // linenr in case it has been shifted
         lineNr=ln;
     }

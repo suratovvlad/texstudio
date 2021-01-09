@@ -38,10 +38,7 @@ class QMimeData;
 class QTextCodec;
 class QActionGroup;
 
-#if QT_VERSION >= 0x040600
 class QPropertyAnimation;
-#endif
-
 
 class QReliableFileWatch;
 
@@ -96,8 +93,9 @@ class QCE_EXPORT QEditor : public QAbstractScrollArea
 			CtrlNavigation		= 0x00001000,
 			CursorJumpPastWrap	= 0x00002000,
 
-			SmoothScrolling		= 0x00004000,
-			MouseWheelZoom		= 0x00008000,
+			SmoothScrolling     = 0x00004000,
+			MouseWheelZoom      = 0x00008000,
+			VerticalOverScroll  = 0x04000000,
 
 			ReplaceIndentTabs		= 0x00010000,
 			ReplaceTextTabs			= 0x00020000,
@@ -230,10 +228,10 @@ class QCE_EXPORT QEditor : public QAbstractScrollArea
 			QList<QDocumentCursor> mirrors;
 		};
 		*/
-		QEditor(QWidget *p = 0);
-		QEditor(bool actions, QWidget *p = 0, QDocument *doc=0);
-		QEditor(const QString& s, QWidget *p = 0);
-		QEditor(const QString& s, bool actions, QWidget *p = 0);
+        QEditor(QWidget *p = nullptr);
+        QEditor(bool actions, QWidget *p = nullptr, QDocument *doc=nullptr);
+        QEditor(const QString& s, QWidget *p = nullptr);
+        QEditor(const QString& s, bool actions, QWidget *p = nullptr);
 		virtual ~QEditor();
 		
 		bool flag(EditFlag) const;
@@ -305,7 +303,7 @@ class QCE_EXPORT QEditor : public QAbstractScrollArea
 
 		inline int horizontalOffset() const
         {
-#if QT_VERSION >= 0x050000 && defined Q_OS_MAC
+#if defined Q_OS_MAC
             return horizontalScrollBar()->value();
 #else
             return horizontalScrollBar()->isVisible() ? horizontalScrollBar()->value() : 0;
@@ -313,7 +311,7 @@ class QCE_EXPORT QEditor : public QAbstractScrollArea
         }
 		inline int verticalOffset() const
         {
-#if QT_VERSION >= 0x050000 && defined Q_OS_MAC
+#if defined Q_OS_MAC
             return verticalScrollBar()->value() * m_doc->getLineSpacing();  // does this work always ?
 #else
             return verticalScrollBar()->isVisible() ? verticalScrollBar()->value() * m_doc->getLineSpacing() : 0;
@@ -391,10 +389,16 @@ class QCE_EXPORT QEditor : public QAbstractScrollArea
 		
 		void selectAll();
 		void selectNothing();
+		void selectExpand(QDocumentCursor::SelectionType selectionType);
 		void selectExpandToNextWord();
 		void selectExpandToNextLine();
 		void selectAllOccurences();
-		
+		void selectNextOccurence();
+		void selectPrevOccurence();
+		void selectNextOccurenceKeepMirror();
+		void selectPrevOccurenceKeepMirror();
+		void selectOccurence(bool backward, bool keepMirrors, bool all);
+
 		void relayPanelCommand(const QString& panel, const QString& command, const QList<QVariant>& args = QList<QVariant>());
 
 		void find();
@@ -550,6 +554,7 @@ public slots:
 		void emitNeedUpdatedCompleter();
 		
 	protected:
+		void setVerticalScrollBarMaximum();
 		virtual bool event(QEvent *e);
 		
 		virtual void paintEvent(QPaintEvent *e);
@@ -700,7 +705,7 @@ public slots:
 		bool m_selection;
 		QRect m_crect, m_margins;
 		QPoint m_clickPoint, m_dragPoint;
-		QBasicTimer m_blink, m_click, m_drag;
+		QBasicTimer m_blink, m_click, m_drag, m_autoScroll;
 
 		bool mDisplayModifyTime;
 		bool mIgnoreExternalChanges;
@@ -733,9 +738,7 @@ public slots:
 		int m_LineWidth;
 		int m_wrapAfterNumChars;
 
-#if QT_VERSION >= 0x040600
 		QPropertyAnimation *m_scrollAnimation;
-#endif
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QEditor::State)

@@ -36,7 +36,7 @@
     <widget class="QListWidget" name="contentsWidget">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-       <horstretch>0</horstretch>
+       <horstretch>1</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
@@ -48,7 +48,7 @@
      </property>
      <property name="maximumSize">
       <size>
-       <width>170</width>
+       <width>400</width>
        <height>32000</height>
       </size>
      </property>
@@ -153,7 +153,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>11</number>
+      <number>6</number>
      </property>
      <widget class="QWidget" name="pageGeneral">
       <layout class="QVBoxLayout">
@@ -185,8 +185,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>632</width>
-            <height>678</height>
+            <width>620</width>
+            <height>735</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout">
@@ -208,29 +208,23 @@
               <string>Appearance</string>
              </property>
              <layout class="QGridLayout">
-              <item row="8" column="0">
-               <widget class="QLabel" name="label_9">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
+              <item row="4" column="1">
+               <widget class="QCheckBox" name="checkBoxUseTexmakerPalette">
                 <property name="text">
-                 <string>Language:</string>
+                 <string>Ignore Most System Colors</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_5">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
+              <item row="7" column="1">
+               <widget class="QCheckBox" name="checkBoxMRUDocumentChooser">
                 <property name="text">
-                 <string>Font:</string>
+                 <string>MRU Document Chooser</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
@@ -244,31 +238,31 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_7">
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_14">
+                <property name="text">
+                 <string>Color Scheme:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="1" colspan="3">
+               <widget class="QFontComboBox" name="comboBoxInterfaceFont">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="text">
-                 <string>Font Size:</string>
-                </property>
                </widget>
               </item>
-              <item row="1" column="1" colspan="3">
-               <widget class="QComboBox" name="comboBoxInterfaceModernStyle">
-                <item>
-                 <property name="text">
-                  <string>Classic</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Modern</string>
-                 </property>
-                </item>
+              <item row="10" column="1" colspan="3">
+               <widget class="QComboBox" name="comboBoxLanguage">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                </widget>
               </item>
               <item row="0" column="0">
@@ -284,7 +278,7 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="1" colspan="3">
+              <item row="6" column="1" colspan="3">
                <widget class="QSpinBox" name="spinBoxInterfaceFontSize">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -294,57 +288,68 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="2" colspan="2">
+              <item row="10" column="0">
+               <widget class="QLabel" name="label_9">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Language:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0">
+               <widget class="QLabel" name="label_5">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Font:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1" colspan="3">
+               <widget class="QComboBox" name="comboBoxInterfaceModernStyle">
+                <item>
+                 <property name="text">
+                  <string>Classic</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Modern</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Modern - dark</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="label_7">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Font Size:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="2">
                <widget class="QCheckBox" name="checkBoxUseSystemTheme">
                 <property name="text">
                  <string>Use System Theme Icons</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="1" colspan="3">
-               <widget class="QComboBox" name="comboBoxLanguage">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1" colspan="3">
-               <widget class="QFontComboBox" name="comboBoxInterfaceFont">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string>Color Scheme:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QCheckBox" name="checkBoxUseTexmakerPalette">
-                <property name="text">
-                 <string>Ignore Most System Colors</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1">
-               <widget class="QCheckBox" name="checkBoxMRUDocumentChooser">
-                <property name="text">
-                 <string>MRU Document Chooser</string>
                 </property>
                 <property name="advancedOption" stdset="0">
                  <bool>true</bool>
@@ -666,8 +671,7 @@
        <item>
         <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>&lt;b&gt;%&lt;/b&gt;: filename without extension; &lt;b&gt;@&lt;/b&gt;: line number; &lt;b&gt;?[selector][terminating char]&lt;/b&gt;: formated filename
-</string>
+          <string>&lt;b&gt;%&lt;/b&gt;: filename without extension; &lt;b&gt;@&lt;/b&gt;: line number; &lt;b&gt;?[selector][pathname parts][terminating char]&lt;/b&gt;: formated filename</string>
          </property>
          <property name="indent">
           <number>15</number>
@@ -677,12 +681,7 @@
        <item>
         <widget class="QLabel" name="label_17">
          <property name="text">
-          <string>&lt;i&gt;Selectors:&lt;/i&gt; a combination of &lt;b&gt;a&lt;/b&gt;: absolute path, &lt;!--&lt;i&gt;r&lt;/i&gt;: relative path, --&gt;&lt;b&gt;m&lt;/b&gt;: basefile name without extension,&lt;b&gt;e&lt;/b&gt;: extension, &lt;b&gt;r&lt;/b&gt;: path relative to master, &lt;b&gt;*&lt;/b&gt;: all files matching the following pattern&lt;br /&gt;
-prepend &lt;b&gt;c:&lt;/b&gt; for current file instead of master file (include the colon)&lt;br /&gt;
-&lt;i&gt;Terminating chars:&lt;/i&gt; &lt;b&gt;)&lt;/b&gt;: ends selector. The following chars end the selector and have additional meaning&lt;br /&gt;
-&lt;b&gt;&quot;&lt;/b&gt;: enclose in double-quotes, &lt;b&gt;.&lt;/b&gt; (dot) add a point at the end, (space): add a space at the end&lt;br /&gt;
-&lt;i&gt;Examples:&lt;/i&gt; &lt;b&gt;?ame&quot;&lt;/b&gt;: complete absolute filename enclosed in double-quotes, &lt;b&gt;?e)&lt;/b&gt; just the extension without leading dot (e.g. tex), &lt;br /&gt;
-&lt;b&gt;?m&quot;&lt;/b&gt; double-quoted filename without extension (identical to &lt;b&gt;%&lt;/b&gt;), &lt;b&gt;?me&lt;/b&gt; filename with extension (e.g. example.tex), &lt;b&gt;?*.aux&lt;/b&gt;: all .aux files in the current directory</string>
+          <string>&lt;i&gt;File selector (Optional. If present include the terminating colon):&lt;/i&gt; If no selector then select master file. &lt;b&gt;c:&lt;/b&gt; select current file, &lt;b&gt;p{ext}:&lt;/b&gt; Find a file with same basename as master file and extension &lt;b&gt;ext&lt;/b&gt;. Search is done in master file directory and additional PDF directories.&lt;br /&gt;&lt;i&gt;Pathname parts:&lt;/i&gt; a combination of &lt;b&gt;a&lt;/b&gt;: absolute path, &lt;b&gt;m&lt;/b&gt;: basefile name without extension,&lt;b&gt;e&lt;/b&gt;: extension, &lt;b&gt;r&lt;/b&gt;: path relative to master, &lt;b&gt;*&lt;/b&gt;: all files matching the following pattern&lt;br/&gt;&lt;i&gt;Terminating chars:&lt;/i&gt;&lt;b&gt;)&lt;/b&gt;: ends selector. The following chars end the selector and have additional meaning&lt;br/&gt;&lt;b&gt;&amp;quot;&lt;/b&gt;: enclose in double-quotes, &lt;b&gt;.&lt;/b&gt; (dot) add a point at the end, (space): add a space at the end&lt;br/&gt;&lt;i&gt;Examples:&lt;/i&gt;&lt;b&gt;?ame&amp;quot;&lt;/b&gt;: complete absolute filename enclosed in double-quotes, &lt;b&gt;?e)&lt;/b&gt; just the extension without leading dot (e.g. tex), &lt;br/&gt;&lt;b&gt;?m&amp;quot;&lt;/b&gt; double-quoted filename without extension (identical to &lt;b&gt;%&lt;/b&gt;), &lt;b&gt;?me&lt;/b&gt; filename with extension (e.g. example.tex), &lt;b&gt;?*.aux&lt;/b&gt;: all .aux files in the current directory</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -741,8 +740,8 @@ prepend &lt;b&gt;c:&lt;/b&gt; for current file instead of master file (include t
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>880</width>
-            <height>617</height>
+            <width>821</width>
+            <height>598</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_17">
@@ -899,8 +898,8 @@ prepend &lt;b&gt;c:&lt;/b&gt; for current file instead of master file (include t
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>850</width>
-                   <height>76</height>
+                   <width>774</width>
+                   <height>79</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_1">
@@ -1381,73 +1380,6 @@ Then you can select a new shortcut by one of the following ways:
           <property name="horizontalSpacing">
            <number>60</number>
           </property>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_71">
-            <property name="text">
-             <string>Secondary Toolbars</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QToolButton" name="tbRevertIcon">
-            <property name="text">
-             <string>Reset</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QToolButton" name="tbRevertCentralIcon">
-            <property name="text">
-             <string>Reset</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3">
-           <widget class="QToolButton" name="tbRevertSymbol">
-            <property name="text">
-             <string>Reset</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_72">
-            <property name="text">
-             <string>Symbol Grid</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_11">
-            <property name="text">
-             <string>Main Toolbar</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1" colspan="2">
-           <widget class="QSlider" name="horizontalSliderIcon">
-            <property name="toolTip">
-             <string>This changes the scaling of the horizontal toolbars (for high resolution displays).</string>
-            </property>
-            <property name="minimum">
-             <number>16</number>
-            </property>
-            <property name="maximum">
-             <number>128</number>
-            </property>
-            <property name="sliderPosition">
-             <number>22</number>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="tickPosition">
-             <enum>QSlider::TicksBelow</enum>
-            </property>
-            <property name="tickInterval">
-             <number>8</number>
-            </property>
-           </widget>
-          </item>
           <item row="4" column="1" colspan="2">
            <widget class="QSlider" name="horizontalSliderSymbol">
             <property name="toolTip">
@@ -1479,18 +1411,26 @@ Then you can select a new shortcut by one of the following ways:
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
-           <spacer name="verticalSpacer_6">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_11">
+            <property name="text">
+             <string>Main Toolbar</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>470</height>
-             </size>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QToolButton" name="tbRevertIcon">
+            <property name="text">
+             <string>Reset</string>
             </property>
-           </spacer>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QToolButton" name="tbRevertCentralIcon">
+            <property name="text">
+             <string>Reset</string>
+            </property>
+           </widget>
           </item>
           <item row="1" column="1" colspan="2">
            <widget class="QSlider" name="horizontalSliderCentraIcon">
@@ -1511,6 +1451,104 @@ Then you can select a new shortcut by one of the following ways:
             </property>
             <property name="tickInterval">
              <number>8</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderIcon">
+            <property name="toolTip">
+             <string>This changes the scaling of the horizontal toolbars (for high resolution displays).</string>
+            </property>
+            <property name="minimum">
+             <number>16</number>
+            </property>
+            <property name="maximum">
+             <number>128</number>
+            </property>
+            <property name="sliderPosition">
+             <number>22</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+            <property name="tickInterval">
+             <number>8</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3">
+           <widget class="QToolButton" name="tbRevertSymbol">
+            <property name="text">
+             <string>Reset</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_72">
+            <property name="text">
+             <string>Symbol Grid</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <spacer name="verticalSpacer_6">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>470</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_71">
+            <property name="text">
+             <string>Secondary Toolbars</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderPDF">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This changes the scaling of the toolbar of the embeded pdf viewer (for high resolution displays).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="minimum">
+             <number>8</number>
+            </property>
+            <property name="maximum">
+             <number>128</number>
+            </property>
+            <property name="tracking">
+             <bool>true</bool>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+            <property name="tickInterval">
+             <number>8</number>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_87">
+            <property name="text">
+             <string>Embedded PDF Toolbar</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="3">
+           <widget class="QToolButton" name="tbRevertPDF">
+            <property name="text">
+             <string>Reset</string>
             </property>
            </widget>
           </item>
@@ -1555,6 +1593,78 @@ Then you can select a new shortcut by one of the following ways:
           <string>Editor</string>
          </property>
          <layout class="QGridLayout">
+          <item row="13" column="0">
+           <widget class="QCheckBox" name="checkBoxRealTimeCheck">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Inline Checking:</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0">
+           <widget class="QLabel" name="label_33">
+            <property name="text">
+             <string>Show Line Numbers:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="1">
+           <widget class="QComboBox" name="comboboxLineNumbers">
+            <property name="" stdset="0">
+             <bool>true</bool>
+            </property>
+            <item>
+             <property name="text">
+              <string>No Line Numbers</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>All Line Numbers</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Only Important Line Numbers</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="15" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxInlineCheckNonTeXFiles">
+            <property name="text">
+             <string>Check non tex files</string>
+            </property>
+            <property name="advancedOption" stdset="0">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="17" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxScanInstalledLatexPackages">
+            <property name="text">
+             <string>Scan LaTeX distribution for installed packages</string>
+            </property>
+            <property name="advancedOption" stdset="0">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1" colspan="4">
+           <widget class="QCheckBox" name="checkBoxFolding">
+            <property name="text">
+             <string>Folding</string>
+            </property>
+           </widget>
+          </item>
           <item row="8" column="3" colspan="2">
            <widget class="QCheckBox" name="checkBoxReplaceIndentTabByWhitespace">
             <property name="text">
@@ -1569,26 +1679,10 @@ Then you can select a new shortcut by one of the following ways:
             </property>
            </widget>
           </item>
-          <item row="10" column="0">
+          <item row="11" column="0">
            <widget class="QLabel" name="label_39">
             <property name="text">
              <string>Replace Double Quotes:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="0">
-           <widget class="QCheckBox" name="checkBoxRealTimeCheck">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Inline Checking:</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1605,47 +1699,10 @@ Then you can select a new shortcut by one of the following ways:
             </property>
            </widget>
           </item>
-          <item row="14" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxAutoLoad">
-            <property name="text">
-             <string>Automatically load included files</string>
-            </property>
-            <property name="advancedOption" stdset="0">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
           <item row="8" column="0">
            <widget class="QLabel" name="label_30">
             <property name="text">
              <string>Indentation Mode:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="6" column="1" colspan="4">
-           <widget class="QCheckBox" name="checkBoxFolding">
-            <property name="text">
-             <string>Folding</string>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="2" colspan="3">
-           <widget class="QCheckBox" name="checkBoxHideGrammarErrorsInNonText">
-            <property name="text">
-             <string>Hide grammar errors in non-text environments</string>
-            </property>
-            <property name="advancedOption" stdset="0">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxHideSpellingErrorsInNonText">
-            <property name="text">
-             <string>Hide spelling errors in non-text environments</string>
-            </property>
-            <property name="advancedOption" stdset="0">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1729,7 +1786,7 @@ Then you can select a new shortcut by one of the following ways:
             </property>
            </widget>
           </item>
-          <item row="10" column="1" colspan="4">
+          <item row="11" column="1" colspan="4">
            <widget class="QComboBox" name="comboBoxReplaceQuotes">
             <item>
              <property name="text">
@@ -1812,17 +1869,7 @@ Then you can select a new shortcut by one of the following ways:
             </item>
            </widget>
           </item>
-          <item row="13" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxInlineCheckNonTeXFiles">
-            <property name="text">
-             <string>Check non tex files</string>
-            </property>
-            <property name="advancedOption" stdset="0">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="1" colspan="4">
+          <item row="13" column="1" colspan="4">
            <widget class="QGroupBox" name="groupBoxInlineChecking">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -1879,20 +1926,47 @@ Then you can select a new shortcut by one of the following ways:
             </layout>
            </widget>
           </item>
-          <item row="15" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxScanInstalledLatexPackages">
+          <item row="9" column="3" colspan="2">
+           <widget class="QCheckBox" name="checkBoxReplaceTextTabByWhitespace">
             <property name="text">
-             <string>Scan LaTeX distribution for installed packages</string>
+             <string>Replace Tab in Text by Spaces</string>
+            </property>
+           </widget>
+          </item>
+          <item row="16" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxAutoLoad">
+            <property name="text">
+             <string>Automatically load included files</string>
             </property>
             <property name="advancedOption" stdset="0">
              <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="9" column="3" colspan="2">
-           <widget class="QCheckBox" name="checkBoxReplaceTextTabByWhitespace">
+          <item row="14" column="2" colspan="3">
+           <widget class="QCheckBox" name="checkBoxHideGrammarErrorsInNonText">
             <property name="text">
-             <string>Replace Tab in Text by Spaces</string>
+             <string>Hide grammar errors in non-text environments</string>
+            </property>
+            <property name="advancedOption" stdset="0">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxHideSpellingErrorsInNonText">
+            <property name="text">
+             <string>Hide spelling errors in non-text environments</string>
+            </property>
+            <property name="advancedOption" stdset="0">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="3" colspan="2">
+           <widget class="QCheckBox" name="checkboxRemoveTrailingWsOnSave">
+            <property name="text">
+             <string>Remove Trailing Whitespace on Save</string>
             </property>
            </widget>
           </item>
@@ -1928,8 +2002,8 @@ Then you can select a new shortcut by one of the following ways:
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>1675</height>
+            <width>734</width>
+            <height>1824</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -1950,35 +2024,6 @@ Then you can select a new shortcut by one of the following ways:
              <layout class="QGridLayout" name="gridLayout_6">
               <item row="2" column="0">
                <layout class="QHBoxLayout" name="horizontalLayout_6">
-                <item>
-                 <widget class="QLabel" name="label_33">
-                  <property name="text">
-                   <string>Show Line Numbers:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QComboBox" name="comboboxLineNumbers">
-                  <property name="advancedOption" stdset="0">
-                   <bool>true</bool>
-                  </property>
-                  <item>
-                   <property name="text">
-                    <string>No Line Numbers</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>All Line Numbers</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>Only Important Line Numbers</string>
-                   </property>
-                  </item>
-                 </widget>
-                </item>
                 <item>
                  <spacer name="horizontalSpacer_6">
                   <property name="orientation">
@@ -2128,14 +2173,76 @@ Then you can select a new shortcut by one of the following ways:
               <bool>false</bool>
              </property>
              <layout class="QGridLayout" columnstretch="0,1,1,1">
-              <item row="20" column="0">
+              <item row="16" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkBoxUseQSaveWrite">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This uses QSaveFile to prevent losing existing data if the writing operation fails. As a drawback, the current user becomes the owner of the file and extended file attributes are lost. Also, there appear to be problems of this method with dropbox folders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Safe writing of files</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="2" colspan="2">
+               <widget class="QCheckBox" name="checkBoxImageToolTip">
+                <property name="text">
+                 <string>Show image tooltip on image files</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkOverwriteOpeningBracketFollowedByPlaceholder">
+                <property name="text">
+                 <string>Overwrite Opening Bracket Followed by a Placeholder</string>
+                </property>
+               </widget>
+              </item>
+              <item row="21" column="0">
                <widget class="QCheckBox" name="checkBoxShowLogMarkersWhenClickingLogEntry">
                 <property name="text">
                  <string>Show log markers when clicking log entry</string>
                 </property>
                </widget>
               </item>
-              <item row="23" column="1" colspan="2">
+              <item row="4" column="0">
+               <widget class="QCheckBox" name="checkBoxMouseWheelZoom">
+                <property name="text">
+                 <string>Mouse Wheel Zoom</string>
+                </property>
+               </widget>
+              </item>
+              <item row="18" column="0" colspan="3">
+               <layout class="QVBoxLayout" name="verticalLayout_12">
+                <property name="leftMargin">
+                 <number>16</number>
+                </property>
+                <item>
+                 <widget class="QCheckBox" name="checkBoxSilentReload">
+                  <property name="text">
+                   <string>Silently reload saved files on external changes (discards undo/redo stack)</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="17" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkBoxMonitorFilesForExternalChanges">
+                <property name="text">
+                 <string>Monitor open files for external changes</string>
+                </property>
+               </widget>
+              </item>
+              <item row="25" column="0">
+               <widget class="QLabel" name="label_85">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;External programs (such as Zotero) can push citations into texstudio by calling: &lt;span style=&quot; font-family:'monospace';&quot;&gt;texstudio --insert-cite &amp;quot;citation&amp;quot;&lt;/span&gt;.&lt;/p&gt;&lt;p&gt;If the cursor is not already within an citation command, the &amp;quot;command&amp;quot; given here is used as \cite-command.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Latex Command for pushed citations:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="24" column="1" colspan="2">
                <widget class="QComboBox" name="comboBoxContextMenuSpellcheckingEntryLocation">
                 <item>
                  <property name="text">
@@ -2149,21 +2256,7 @@ Then you can select a new shortcut by one of the following ways:
                 </item>
                </widget>
               </item>
-              <item row="23" column="0">
-               <widget class="QLabel" name="label_70">
-                <property name="text">
-                 <string>Spellchecking via context menu:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="22" column="0">
-               <widget class="QLabel" name="label_80">
-                <property name="text">
-                 <string>Default Log Encoding</string>
-                </property>
-               </widget>
-              </item>
-              <item row="14" column="1">
+              <item row="15" column="1">
                <widget class="QComboBox" name="comboBoxAutoSave">
                 <item>
                  <property name="text">
@@ -2202,74 +2295,53 @@ Then you can select a new shortcut by one of the following ways:
                 </item>
                </widget>
               </item>
-              <item row="3" column="0">
-               <widget class="QCheckBox" name="checkBoxAutoCompleteParens">
+              <item row="20" column="0">
+               <widget class="QCheckBox" name="checkBoxInsertSymbolAsUCS">
+                <property name="toolTip">
+                 <string>When using unicode characters in the source code, LaTeX still has
+to render the characters. Since unicode is not natively supported by LaTeX, you have to include appropriate packages for unicode characters in your document.</string>
+                </property>
                 <property name="text">
-                 <string>Auto Complete Parentheses</string>
+                 <string>Insert Symbol as Unicode</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="0">
-               <widget class="QCheckBox" name="checkBoxSmoothScrolling">
-                <property name="text">
-                 <string>Smooth Scrolling</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QCheckBox" name="checkBoxMouseWheelZoom">
-                <property name="text">
-                 <string>Mouse Wheel Zoom</string>
-                </property>
-               </widget>
-              </item>
-              <item row="14" column="0">
-               <widget class="QLabel" name="label_24">
-                <property name="text">
-                 <string>Auto Save All Files:</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="0">
+              <item row="12" column="0">
                <widget class="QLabel" name="label_41">
                 <property name="text">
                  <string>Line Wrapping:</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="0">
-               <widget class="QCheckBox" name="checkBoxDoubleClickSelectionIncludeLeadingBackslash">
+              <item row="8" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkOverwriteClosingBracketFollowingPlaceholder">
                 <property name="text">
-                 <string>Double-Click Selection: Include Leading Backslash</string>
+                 <string>Overwrite Closing Bracket Following a Placeholder</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="1">
-               <widget class="QSpinBox" name="spinBoxWrapLineWidth">
-                <property name="minimum">
-                 <number>20</number>
+              <item row="13" column="2">
+               <widget class="QCheckBox" name="checkBoxCenterDocumentInEditor">
+                <property name="toolTip">
+                 <string>This does only have an effect if the width of the document is limited by soft or hard line wrapping.</string>
                 </property>
-                <property name="maximum">
-                 <number>999</number>
+                <property name="text">
+                 <string>Center Document in Editor</string>
                 </property>
                </widget>
               </item>
-              <item row="17" column="0" colspan="3">
-               <layout class="QVBoxLayout" name="verticalLayout_12">
-                <property name="leftMargin">
-                 <number>16</number>
+              <item row="25" column="1" colspan="2">
+               <widget class="QLineEdit" name="lineEditCiteCommand"/>
+              </item>
+              <item row="11" column="0">
+               <widget class="QLabel" name="label_82">
+                <property name="text">
+                 <string>Triple-Click Selection:</string>
                 </property>
-                <item>
-                 <widget class="QCheckBox" name="checkBoxSilentReload">
-                  <property name="text">
-                   <string>Silently reload saved files on external changes (discards undo/redo stack)</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+               </widget>
+              </item>
+              <item row="23" column="1" colspan="2">
+               <widget class="QComboBox" name="comboBoxLogFileEncoding"/>
               </item>
               <item row="5" column="2" colspan="2">
                <widget class="QCheckBox" name="checkBoxTexDocInternal">
@@ -2278,7 +2350,14 @@ Then you can select a new shortcut by one of the following ways:
                 </property>
                </widget>
               </item>
-              <item row="10" column="1" colspan="2">
+              <item row="6" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkBoxAllowDragAndDrop">
+                <property name="text">
+                 <string>Allow Drag and Drop</string>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="1" colspan="2">
                <widget class="QComboBox" name="comboBoxTripleClickSelection">
                 <item>
                  <property name="text">
@@ -2307,55 +2386,7 @@ Then you can select a new shortcut by one of the following ways:
                 </item>
                </widget>
               </item>
-              <item row="16" column="0" colspan="2">
-               <widget class="QCheckBox" name="checkBoxMonitorFilesForExternalChanges">
-                <property name="text">
-                 <string>Monitor open files for external changes</string>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="0">
-               <widget class="QLabel" name="label_82">
-                <property name="text">
-                 <string>Triple-Click Selection:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="15" column="0" colspan="2">
-               <widget class="QCheckBox" name="checkBoxUseQSaveWrite">
-                <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This uses QSaveFile to prevent losing existing data if the writing operation fails. As a drawback, the current user becomes the owner of the file and extended file attributes are lost. Also, there appear to be problems of this method with dropbox folders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
-                <property name="text">
-                 <string>Safe writing of files</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="0" colspan="2">
-               <widget class="QCheckBox" name="checkOverwriteClosingBracketFollowingPlaceholder">
-                <property name="text">
-                 <string>Overwrite Closing Bracket Following a Placeholder</string>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="2">
-               <widget class="QCheckBox" name="checkBoxCenterDocumentInEditor">
-                <property name="toolTip">
-                 <string>This does only have an effect if the width of the document is limited by soft or hard line wrapping.</string>
-                </property>
-                <property name="text">
-                 <string>Center Document in Editor</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="2" colspan="2">
-               <widget class="QCheckBox" name="checkBoxToolTipHelp2">
-                <property name="text">
-                 <string>Show help as tooltip on text in editor</string>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="0">
+              <item row="13" column="0">
                <widget class="QLabel" name="label_23">
                 <property name="text">
                  <string>Maximal Characters:</string>
@@ -2365,7 +2396,41 @@ Then you can select a new shortcut by one of the following ways:
                 </property>
                </widget>
               </item>
-              <item row="11" column="1" colspan="2">
+              <item row="5" column="0">
+               <widget class="QCheckBox" name="checkBoxSmoothScrolling">
+                <property name="text">
+                 <string>Smooth Scrolling</string>
+                </property>
+               </widget>
+              </item>
+              <item row="23" column="0">
+               <widget class="QLabel" name="label_80">
+                <property name="text">
+                 <string>Default Log Encoding</string>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="0">
+               <widget class="QLabel" name="label_24">
+                <property name="text">
+                 <string>Auto Save All Files:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="1">
+               <widget class="QSpinBox" name="spinBoxWrapLineWidth">
+                <property name="minimum">
+                 <number>20</number>
+                </property>
+                <property name="maximum">
+                 <number>999</number>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="1" colspan="2">
                <widget class="QComboBox" name="comboBoxLineWrap">
                 <item>
                  <property name="text">
@@ -2389,60 +2454,47 @@ Then you can select a new shortcut by one of the following ways:
                 </item>
                </widget>
               </item>
-              <item row="19" column="0">
-               <widget class="QCheckBox" name="checkBoxInsertSymbolAsUCS">
-                <property name="toolTip">
-                 <string>When using unicode characters in the source code, LaTeX still has
-to render the characters. Since unicode is not natively supported by LaTeX, you have to include appropriate packages for unicode characters in your document.</string>
-                </property>
+              <item row="4" column="2" colspan="2">
+               <widget class="QCheckBox" name="checkBoxToolTipHelp2">
                 <property name="text">
-                 <string>Insert Symbol as Unicode</string>
+                 <string>Show help as tooltip on text in editor</string>
                 </property>
                </widget>
               </item>
-              <item row="20" column="2">
+              <item row="21" column="2">
                <widget class="QCheckBox" name="checkBoxGoToErrorWhenDisplayingLog">
                 <property name="text">
                  <string>Go to error when displaying log</string>
                 </property>
                </widget>
               </item>
-              <item row="22" column="1" colspan="2">
-               <widget class="QComboBox" name="comboBoxLogFileEncoding"/>
-              </item>
-              <item row="3" column="2" colspan="2">
-               <widget class="QCheckBox" name="checkBoxImageToolTip">
-                <property name="text">
-                 <string>Show image tooltip on image files</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0" colspan="2">
-               <widget class="QCheckBox" name="checkOverwriteOpeningBracketFollowedByPlaceholder">
-                <property name="text">
-                 <string>Overwrite Opening Bracket Followed by a Placeholder</string>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0" colspan="2">
-               <widget class="QCheckBox" name="checkBoxAllowDragAndDrop">
-                <property name="text">
-                 <string>Allow Drag and Drop</string>
-                </property>
-               </widget>
-              </item>
               <item row="24" column="0">
-               <widget class="QLabel" name="label_85">
-                <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;External programs (such as Zotero) can push citations into texstudio by calling: &lt;span style=&quot; font-family:'monospace';&quot;&gt;texstudio --insert-cite &amp;quot;citation&amp;quot;&lt;/span&gt;.&lt;/p&gt;&lt;p&gt;If the cursor is not already within an citation command, the &amp;quot;command&amp;quot; given here is used as \cite-command.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
+               <widget class="QLabel" name="label_70">
                 <property name="text">
-                 <string>Latex Command for pushed citations:</string>
+                 <string>Spellchecking via context menu:</string>
                 </property>
                </widget>
               </item>
-              <item row="24" column="1" colspan="2">
-               <widget class="QLineEdit" name="lineEditCiteCommand"/>
+              <item row="3" column="0">
+               <widget class="QCheckBox" name="checkBoxAutoCompleteParens">
+                <property name="text">
+                 <string>Auto Complete Parentheses</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkBoxDoubleClickSelectionIncludeLeadingBackslash">
+                <property name="text">
+                 <string>Double-Click Selection: Include Leading Backslash</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0" colspan="2">
+               <widget class="QCheckBox" name="checkBoxVerticalOverScroll">
+                <property name="text">
+                 <string>Vertical Overscroll (Scroll below end of file)</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -2850,130 +2902,6 @@ to render the characters. Since unicode is not natively supported by LaTeX, you 
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="pageCustomHighlighting">
-      <layout class="QVBoxLayout">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QTableWidget" name="twHighlighEnvirons">
-         <property name="toolTip">
-          <string>Here the highlighting of custom environments can be changed.</string>
-         </property>
-         <property name="rowCount">
-          <number>1</number>
-         </property>
-         <property name="columnCount">
-          <number>2</number>
-         </property>
-         <attribute name="horizontalHeaderDefaultSectionSize">
-          <number>200</number>
-         </attribute>
-         <row/>
-         <column>
-          <property name="text">
-           <string>Custom Environment</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Type of Environment</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout">
-         <item>
-          <widget class="QPushButton" name="pbAddLine">
-           <property name="toolTip">
-            <string>Here you can add another environment for custom highlighting.</string>
-           </property>
-           <property name="text">
-            <string>Add Line</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pbRemoveLine">
-           <property name="text">
-            <string>Remove Line</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QTableWidget" name="twCustomSyntax">
-         <property name="rowCount">
-          <number>1</number>
-         </property>
-         <attribute name="horizontalHeaderStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <row/>
-         <column>
-          <property name="text">
-           <string>Additional Commands</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <widget class="QPushButton" name="pbAddSyntaxLine">
-           <property name="text">
-            <string>Add Line</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pbRemoveSyntaxLine">
-           <property name="text">
-            <string>Remove Line</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="pageCompletion">
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="leftMargin">
@@ -3268,8 +3196,8 @@ them here.</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>590</width>
-            <height>730</height>
+            <width>571</width>
+            <height>790</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -3794,8 +3722,8 @@ them here.</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>414</width>
-            <height>273</height>
+            <width>397</width>
+            <height>297</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -4056,8 +3984,8 @@ them here.</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>593</width>
-            <height>486</height>
+            <width>576</width>
+            <height>560</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
@@ -4079,6 +4007,101 @@ them here.</string>
               <string>Internal PDF Viewer</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_4">
+              <item row="7" column="1">
+               <widget class="QCheckBox" name="checkBoxPreviewMagnifierBorder">
+                <property name="text">
+                 <string>Border</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="label_66">
+                <property name="text">
+                 <string>Highlight Duration</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="label_25">
+                <property name="text">
+                 <string>Magnifier Size:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <widget class="QSpinBox" name="spinBoxPreviewMagnifierSize">
+                <property name="suffix">
+                 <string> px</string>
+                </property>
+                <property name="prefix">
+                 <string/>
+                </property>
+                <property name="minimum">
+                 <number>50</number>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>50</number>
+                </property>
+                <property name="value">
+                 <number>300</number>
+                </property>
+               </widget>
+              </item>
+              <item row="14" column="0">
+               <widget class="QLabel" name="label_69">
+                <property name="text">
+                 <string>Load Strategy:</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QLabel" name="label_84">
+                <property name="text">
+                 <string>Paper Color</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QSpinBox" name="spinBoxPreviewScale">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="specialValueText">
+                 <string notr="true"/>
+                </property>
+                <property name="suffix">
+                 <string>%</string>
+                </property>
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_29">
+                <property name="text">
+                 <string>Scaling:</string>
+                </property>
+               </widget>
+              </item>
               <item row="9" column="1">
                <widget class="QLineEdit" name="lineEditHighlightColor">
                 <property name="toolTip">
@@ -4124,75 +4147,13 @@ them here.</string>
                 </item>
                </widget>
               </item>
-              <item row="10" column="1">
-               <widget class="QSpinBox" name="spinBoxHighlightDuration">
-                <property name="specialValueText">
-                 <string>Infinite</string>
-                </property>
-                <property name="suffix">
-                 <string notr="true"> ms</string>
-                </property>
-                <property name="maximum">
-                 <number>86400000</number>
-                </property>
-                <property name="value">
-                 <number>2000</number>
+              <item row="9" column="0">
+               <widget class="QLabel" name="label_67">
+                <property name="text">
+                 <string>Highlight Color</string>
                 </property>
                 <property name="advancedOption" stdset="0">
                  <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_29">
-                <property name="text">
-                 <string>Scaling:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_28">
-                <property name="text">
-                 <string>Scale Option:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QSpinBox" name="spinBoxPreviewScale">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="specialValueText">
-                 <string notr="true"/>
-                </property>
-                <property name="suffix">
-                 <string>%</string>
-                </property>
-                <property name="minimum">
-                 <number>1</number>
-                </property>
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0">
-               <widget class="QLabel" name="label_25">
-                <property name="text">
-                 <string>Magnifier Size:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QSpinBox" name="spinBoxPreviewDPI">
-                <property name="suffix">
-                 <string> dpi</string>
-                </property>
-                <property name="maximum">
-                 <number>600</number>
                 </property>
                </widget>
               </item>
@@ -4215,20 +4176,125 @@ them here.</string>
                 </item>
                </widget>
               </item>
-              <item row="10" column="0">
-               <widget class="QLabel" name="label_66">
+              <item row="4" column="0">
+               <widget class="QLabel" name="label_27">
                 <property name="text">
-                 <string>Highlight Duration</string>
+                 <string>Screen Resolution:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="0">
+               <widget class="QLabel" name="label_34">
+                <property name="text">
+                 <string>Synchronized Files Types:</string>
                 </property>
                 <property name="advancedOption" stdset="0">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_27">
+              <item row="13" column="1">
+               <widget class="QSpinBox" name="spinBoxCacheSizeMB">
+                <property name="suffix">
+                 <string> MB</string>
+                </property>
+                <property name="minimum">
+                 <number>100</number>
+                </property>
+                <property name="maximum">
+                 <number>1024</number>
+                </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
+                <property name="value">
+                 <number>512</number>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="1">
+               <widget class="QComboBox" name="comboBoxPDFRenderBackend">
+                <property name="toolTip">
+                 <string>The Render Backend used by the PDF library poppler.
+'Splash' is the default and suitable for most situations.
+If there are rendering issues, you may try the alternative 'Arthur' backend.
+Note: Changing this setting will only affect documents that are opened afterwards.</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <item>
+                 <property name="text">
+                  <string notr="true">Splash</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">Arthur</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="5" column="0">
+               <widget class="QLabel" name="label_26">
                 <property name="text">
-                 <string>Screen Resolution:</string>
+                 <string>Magnifier Shape:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QCheckBox" name="checkBoxDisableHorizontalScrollingForFitToTextWidth">
+                <property name="text">
+                 <string>Disable horizontal scrolling for &quot;Fit to Text Width&quot;</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QSpinBox" name="spinBoxPreviewDPI">
+                <property name="suffix">
+                 <string> dpi</string>
+                </property>
+                <property name="maximum">
+                 <number>600</number>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_28">
+                <property name="text">
+                 <string>Scale Option:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="0">
+               <widget class="QLabel" name="label_18">
+                <property name="text">
+                 <string>Cache Size:</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="0">
+               <widget class="QLabel" name="label_76">
+                <property name="toolTip">
+                 <string>The Render Backend used by the PDF library poppler.
+'Splash' is the default and suitable for most situations.
+If there are rendering issues, you may try the alternative 'Arthur' backend.
+Note: Changing this setting will only affect documents that are opened afterwards.</string>
+                </property>
+                <property name="text">
+                 <string>Render Backend:</string>
+                </property>
+                <property name="advancedOption" stdset="0">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
@@ -4245,41 +4311,16 @@ them here.</string>
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
-               <widget class="QCheckBox" name="checkBoxDisableHorizontalScrollingForFitToTextWidth">
-                <property name="text">
-                 <string>Disable horizontal scrolling for &quot;Fit to Text Width&quot;</string>
+              <item row="8" column="1">
+               <widget class="QLineEdit" name="lineEditPaperColor">
+                <property name="toolTip">
+                 <string>Default background color. Specify as hexadecimal RGB value. Note: This will only affect PDFs loaded after the change of the option. The paper color of already open PDFs is not modified.</string>
                 </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
+                <property name="inputMask">
+                 <string notr="true">\#HHHHHH;_</string>
                 </property>
-               </widget>
-              </item>
-              <item row="7" column="1">
-               <widget class="QCheckBox" name="checkBoxPreviewMagnifierBorder">
                 <property name="text">
-                 <string>Border</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="label_26">
-                <property name="text">
-                 <string>Magnifier Shape:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="16" column="0">
-               <widget class="QCheckBox" name="autoHideToolbars">
-                <property name="text">
-                 <string>Auto-hide Toolbars in Embedded Mode</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="0">
-               <widget class="QLabel" name="label_67">
-                <property name="text">
-                 <string>Highlight Color</string>
+                 <string notr="true">#</string>
                 </property>
                 <property name="advancedOption" stdset="0">
                  <bool>true</bool>
@@ -4314,119 +4355,6 @@ them here.</string>
                 </item>
                </widget>
               </item>
-              <item row="13" column="0">
-               <widget class="QLabel" name="label_18">
-                <property name="text">
-                 <string>Cache Size:</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="15" column="1">
-               <widget class="QComboBox" name="comboBoxPDFRenderBackend">
-                <property name="toolTip">
-                 <string>The Render Backend used by the PDF library poppler.
-'Splash' is the default and suitable for most situations.
-If there are rendering issues, you may try the alternative 'Arthur' backend.
-Note: Changing this setting will only affect documents that are opened afterwards.</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-                <item>
-                 <property name="text">
-                  <string notr="true">Splash</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string notr="true">Arthur</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="6" column="1">
-               <widget class="QSpinBox" name="spinBoxPreviewMagnifierSize">
-                <property name="suffix">
-                 <string> px</string>
-                </property>
-                <property name="prefix">
-                 <string/>
-                </property>
-                <property name="minimum">
-                 <number>50</number>
-                </property>
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>50</number>
-                </property>
-                <property name="value">
-                 <number>300</number>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="0">
-               <widget class="QLabel" name="label_34">
-                <property name="text">
-                 <string>Synchronized Files Types:</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="15" column="0">
-               <widget class="QLabel" name="label_76">
-                <property name="toolTip">
-                 <string>The Render Backend used by the PDF library poppler.
-'Splash' is the default and suitable for most situations.
-If there are rendering issues, you may try the alternative 'Arthur' backend.
-Note: Changing this setting will only affect documents that are opened afterwards.</string>
-                </property>
-                <property name="text">
-                 <string>Render Backend:</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="14" column="0">
-               <widget class="QLabel" name="label_69">
-                <property name="text">
-                 <string>Load Strategy:</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="13" column="1">
-               <widget class="QSpinBox" name="spinBoxCacheSizeMB">
-                <property name="suffix">
-                 <string> MB</string>
-                </property>
-                <property name="minimum">
-                 <number>100</number>
-                </property>
-                <property name="maximum">
-                 <number>1024</number>
-                </property>
-                <property name="singleStep">
-                 <number>100</number>
-                </property>
-                <property name="value">
-                 <number>512</number>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
               <item row="0" column="0" colspan="2">
                <widget class="QLabel" name="label_77">
                 <property name="text">
@@ -4434,29 +4362,36 @@ Note: Changing this setting will only affect documents that are opened afterward
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
-               <widget class="QLabel" name="label_84">
+              <item row="16" column="0">
+               <widget class="QCheckBox" name="autoHideToolbars">
                 <property name="text">
-                 <string>Paper Color</string>
+                 <string>Auto-hide Toolbars in Embedded Mode</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="1">
+               <widget class="QSpinBox" name="spinBoxHighlightDuration">
+                <property name="specialValueText">
+                 <string>Infinite</string>
+                </property>
+                <property name="suffix">
+                 <string notr="true"> ms</string>
+                </property>
+                <property name="maximum">
+                 <number>86400000</number>
+                </property>
+                <property name="value">
+                 <number>2000</number>
                 </property>
                 <property name="advancedOption" stdset="0">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item row="8" column="1">
-               <widget class="QLineEdit" name="lineEditPaperColor">
-                <property name="toolTip">
-                 <string>Default background color. Specify as hexadecimal RGB value. Note: This will only affect PDFs loaded after the change of the option. The paper color of already open PDFs is not modified.</string>
-                </property>
-                <property name="inputMask">
-                 <string notr="true">\#HHHHHH;_</string>
-                </property>
+              <item row="17" column="0" colspan="2">
+               <widget class="QCheckBox" name="autoRecompileFullDocument">
                 <property name="text">
-                 <string notr="true">#</string>
-                </property>
-                <property name="advancedOption" stdset="0">
-                 <bool>true</bool>
+                 <string>Auto-recompile document on changes</string>
                 </property>
                </widget>
               </item>
@@ -4497,6 +4432,20 @@ Note: Changing this setting will only affect documents that are opened afterward
         <number>0</number>
        </property>
        <item>
+        <widget class="QComboBox" name="comboBoxUseVCS">
+         <item>
+          <property name="text">
+           <string>Use SVN</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Use GIT</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
         <widget class="QComboBox" name="comboBoxAutoCheckinLevel">
          <property name="toolTip">
           <string>Select how txs checks in saved files</string>
@@ -4521,7 +4470,7 @@ Note: Changing this setting will only affect documents that are opened afterward
        <item>
         <widget class="QCheckBox" name="cbSVNUndo">
          <property name="text">
-          <string>Use SVN revisions to undo before last saved version</string>
+          <string>Use SVN/GIT revisions to undo before last saved version</string>
          </property>
         </widget>
        </item>
@@ -4565,6 +4514,102 @@ Note: Changing this setting will only affect documents that are opened afterward
           <size>
            <width>20</width>
            <height>554</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="pageInternalTerminal">
+      <layout class="QGridLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="title">
+          <string>Internal Terminal</string>
+         </property>
+         <layout class="QGridLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_86">
+            <property name="text">
+             <string>Color Scheme:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxTerminalColorScheme">
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelFamily_2">
+            <property name="text">
+             <string>Font Family:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxTerminalFont">
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelSize_2">
+            <property name="text">
+             <string>Font Size:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="QSpinBox" name="spinBoxTerminalFontSize">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="value">
+             <number>12</number>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelShell">
+            <property name="text">
+             <string>Shell:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="lineEditTerminalShell"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <spacer name="verticalSpacer_8">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
           </size>
          </property>
         </spacer>
@@ -4622,12 +4667,6 @@ Note: Changing this setting will only affect documents that are opened afterward
   <tabstop>comboBoxAutoSave</tabstop>
   <tabstop>checkBoxHackDisableAccentWorkaround</tabstop>
   <tabstop>checkBoxHackAutoRendering</tabstop>
-  <tabstop>twHighlighEnvirons</tabstop>
-  <tabstop>pbAddLine</tabstop>
-  <tabstop>pbRemoveLine</tabstop>
-  <tabstop>twCustomSyntax</tabstop>
-  <tabstop>pbAddSyntaxLine</tabstop>
-  <tabstop>pbRemoveSyntaxLine</tabstop>
   <tabstop>spinBoxTabRelFontSize</tabstop>
   <tabstop>completeListWidget</tabstop>
   <tabstop>checkBoxGrammarRepetitionCheck</tabstop>
@@ -4883,6 +4922,22 @@ Note: Changing this setting will only affect documents that are opened afterward
     <hint type="destinationlabel">
      <x>404</x>
      <y>1403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRealTimeCheck</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxInlinePackageCheck</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>396</x>
+     <y>23</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>396</x>
+     <y>23</y>
     </hint>
    </hints>
   </connection>

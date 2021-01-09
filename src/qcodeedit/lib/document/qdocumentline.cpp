@@ -403,12 +403,20 @@ QVector<int> QDocumentLine::getFormats(){
     return m_handle->getFormats();
 }
 
-int QDocumentLine::getFormatAt(int pos){
+int QDocumentLine::getFormatAt(int pos) const{
 	if( !m_handle ) return -1;
 	if (pos < 0 ) return -1;
 	const QVector<int>& formats = m_handle->getFormats();
 	if( pos >= formats.size() ) return -1;
 	return formats.at(pos);
+}
+
+int QDocumentLine::getCachedFormatAt(int pos) const{
+    if( !m_handle ) return -1;
+    if (pos < 0 ) return -1;
+    const QVector<int>& formats = m_handle->getCachedFormats();
+    if( pos >= formats.size() ) return -1;
+    return formats.at(pos);
 }
 
 QVariant QDocumentLine::getCookie(int type){
@@ -449,30 +457,26 @@ QTextLayout* QDocumentLine::getLayout() const{
 
 int QDocumentLine::leftCursorPosition(int oldPos) const{
 	if (!m_handle) return 0;
-#if QT_VERSION >= 0x040800
 	if (m_handle->m_layout) {
 		QReadLocker locker(&m_handle->mLock); //no idea if this is needed
 		try {
 			return m_handle->m_layout->leftCursorPosition(oldPos);
-		} catch (std::bad_alloc){
+		} catch (std::bad_alloc &){
 
 		}
 	}
-#endif
 	return qBound(0, oldPos - 1, length());
 }
 int QDocumentLine::rightCursorPosition(int oldPos) const{
 	if (!m_handle) return 0;
-#if QT_VERSION >= 0x040800
 	if (m_handle->m_layout) {
 		QReadLocker locker(&m_handle->mLock); //no idea if this is needed
 		try {
 			return m_handle->m_layout->rightCursorPosition(oldPos);
-		} catch (std::bad_alloc){ //this is sometimes thrown on qt4.8.7 with 7*hex:(d8ba d8b1) 2478 5e32 2409
+		} catch (std::bad_alloc &){ //this is sometimes thrown on qt4.8.7 with 7*hex:(d8ba d8b1) 2478 5e32 2409
 
 		}
 	}
-#endif
 	return qBound(0, oldPos + 1, length());
 }
 

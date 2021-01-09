@@ -38,14 +38,12 @@ QuickBeamerDialog::QuickBeamerDialog(QWidget *parent, const QString &name)
 	labelImage->setMaximumSize(imgWidth, imgHeight);
 	ui.scrollArea->setMinimumWidth(imgWidth + scrollbarWidth + margin);
 	ui.scrollArea->setMaximumWidth(imgWidth + scrollbarWidth + margin);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 	if (qApp->devicePixelRatio() == 2) {
 		labelImage->setMinimumSize(imgWidth / 2, imgHeight / 2);
 		labelImage->setMaximumSize(imgWidth / 2, imgHeight / 2);
 		ui.scrollArea->setMinimumWidth(imgWidth / 2 + scrollbarWidth + margin);
 		ui.scrollArea->setMaximumWidth(imgWidth / 2 + scrollbarWidth + margin);
 	}
-#endif
 	ui.scrollArea->setBackgroundRole(QPalette::Dark);
 	ui.scrollArea->setWidget(labelImage);
 }
@@ -85,9 +83,11 @@ void QuickBeamerDialog::Init()
 	ui.comboBoxTheme->addItem( "Boadilla" );
 	ui.comboBoxTheme->addItem( "CambridgeUS" );
 	ui.comboBoxTheme->addItem( "Copenhagen" );
+	ui.comboBoxTheme->addItem( "Cuerna" );
 	ui.comboBoxTheme->addItem( "Darmstadt" );
 	ui.comboBoxTheme->addItem( "Dresden" );
 	ui.comboBoxTheme->addItem( "EastLansing" );
+	ui.comboBoxTheme->addItem( "focus" );
 	ui.comboBoxTheme->addItem( "Frankfurt" );
 	ui.comboBoxTheme->addItem( "Goettingen" );
 	ui.comboBoxTheme->addItem( "Hannover" );
@@ -97,6 +97,7 @@ void QuickBeamerDialog::Init()
 	ui.comboBoxTheme->addItem( "Madrid" );
 	ui.comboBoxTheme->addItem( "Malmoe" );
 	ui.comboBoxTheme->addItem( "Marburg" );
+	ui.comboBoxTheme->addItem( "metropolis" );
 	ui.comboBoxTheme->addItem( "Montpellier" );
 	ui.comboBoxTheme->addItem( "PaloAlto" );
 	ui.comboBoxTheme->addItem( "Pittsburgh" );
@@ -139,9 +140,7 @@ void QuickBeamerDialog::Init()
 void QuickBeamerDialog::updatePreview(const QString &theme)
 {
 	QPixmap pixmap(":/images/beamer/" + theme + ".png");
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 	if (qApp->devicePixelRatio() == 2) pixmap.setDevicePixelRatio(qApp->devicePixelRatio());
-#endif
 	labelImage->setPixmap(pixmap);
 }
 
@@ -191,11 +190,6 @@ QString QuickBeamerDialog::getNewDocumentText()
 		tag += QString("\\usepackage[T1]{fontenc}\n");
 		tag += QString("\\usepackage{lmodern}\n");
 	}
-
-	if (ui.checkBoxAMS->isChecked())
-		tag += QString("\\usepackage{amsmath}\n\\usepackage{amsfonts}\n\\usepackage{amssymb}\n");
-	if (ui.checkBoxGraphicx->isChecked())
-		tag += QString("\\usepackage{graphicx}\n");
 
     tag += "\\usetheme{" + ui.comboBoxTheme->currentText() + "}\n";
 

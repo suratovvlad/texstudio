@@ -5,12 +5,26 @@
 #include "mostQtHeaders.h"
 #include "help.h"
 #include "testutil.h"
+#include "buildmanager.h"
 #include <QtTest/QtTest>
 
 class HelpTest: public QObject{
 	Q_OBJECT
 public:
-	HelpTest(bool executeAllTests=true) : allTests(executeAllTests) {}
+    HelpTest(BuildManager *bm) : bm(bm) {
+        connect(&help, SIGNAL(runCommand(QString,QString*)), this, SLOT(runCommand(QString,QString*)));
+    }
+
+public slots:
+    bool runCommand(QString commandline,QString *buffer)
+    {
+        commandline.replace('@', "@@");
+        commandline.replace('%', "%%");
+        commandline.replace('?', "??");
+        // path is used to force changing into the tmp dir (otherwise git status does not work properly)
+        return bm->runCommand(commandline,QFileInfo() , QFileInfo(), 0, buffer, nullptr,buffer);
+    }
+
 private slots:
 	void packageDocFile_data() {
 		QTest::addColumn<QString>("package");
@@ -25,24 +39,30 @@ private slots:
 	void packageDocFile() {
 		QFETCH(QString, package);
 		QFETCH(QString, fileWithoutPath);
-		if (!globalExecuteAllTests) { qDebug("skip"); return; }
-        QStringList lst=fileWithoutPath.split(";");
-		QString file = Help::packageDocFile(package, true);
-        bool found=false;
-        for(int i=(lst.count()-1);i>0;i--){
-            QString fileName=lst.at(i);
-            if(fileName==QFileInfo(file).fileName()){
-                QEQUAL(QFileInfo(file).fileName(), fileName);
-                found=true;
-                break;
-            }
-        }
-        if(!found)
-            QEQUAL(QFileInfo(file).fileName(), lst.value(0,""));
+		if (!globalExecuteAllTests) {
+			qDebug("skip");
+			return;
+		}
+		QStringList checkList=fileWithoutPath.split(";");
+        QString texdocPathname = help.packageDocFile(package, true);
+		if (texdocPathname == "") {
+			QVERIFY2(false, QString("texdoc command was not found in the search path or package \"%1\" is not installed").arg(package).toLatin1().constData());
+		}
+		QString texdocFilename = QFileInfo(texdocPathname).fileName();
+		bool found=false;
+		for(int i=0, n=checkList.count(); i<n; ++i) {
+			QString checkFilename=checkList.at(i);
+			if(checkFilename==texdocFilename) {
+				found=true;
+				break;
+			}
+		}
+		QVERIFY2(found, QString("Could not find documentation file for package \"%1\"").arg(package).toLatin1().constData());
 	}
 
 private:
-	bool allTests;
+    Help help;
+    BuildManager *bm;
 };
 
 #endif
